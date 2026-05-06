@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#2d2db0">
+<title>Insta-PayTrack</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f8f8f8; color: #1a0000; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #1a0000 0%, #8b0000 50%, #cc0000 100%); color: white; padding: 14px 16px; display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; box-shadow: 0 4px 24px rgba(180,0,0,0.6), 0 1px 0 rgba(255,255,255,0.1); }
+  .header h1 { font-size: 17px; font-weight: 800; flex: 1; letter-spacing: 0.5px; text-shadow: 0 0 20px rgba(240,180,255,0.8); }
+  .header small { font-size: 11px; opacity: 0.75; display: block; }
+  .export-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 10px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; backdrop-filter: blur(8px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+  .export-btn:active { background: rgba(255,255,255,0.25); }
+
+  .tabs { display: flex; background: #ffffff; border-bottom: 1px solid #5a0000; position: sticky; top: 56px; z-index: 99; box-shadow: 0 2px 8px rgba(200,0,0,0.08); }
+  .tab { flex: 1; padding: 11px 4px; text-align: center; font-size: 12px; font-weight: 600; color: #666666; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; }
+  .tab.active { color: #cc0000; border-bottom-color: #cc0000; text-shadow: 0 0 8px rgba(220,0,0,0.5); }
+
+  .page { display: none; padding: 14px; padding-bottom: 40px; }
+  .page.active { display: block; }
+
+  .card { background: #ffffff; border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(180,0,0,0.15), 0 1px 3px rgba(0,0,0,0.3); border: 1px solid #fecaca; }
+  .card-title { font-size: 14px; font-weight: 700; color: #cc0000; margin-bottom: 10px; letter-spacing: 0.3px; }
+
+  textarea, input[type=text], input[type=number] { width: 100%; border: 1.5px solid #fecaca; border-radius: 10px; padding: 10px 12px; font-size: 14px; font-family: inherit; background: #fef2f2; color: #1a0000; outline: none; }
+  textarea:focus, input:focus { border-color: #ff4444; background: #ffffff; box-shadow: 0 0 0 3px rgba(200,0,0,0.2); }
+
+  .btn-primary { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 13px; border-radius: 12px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; background: linear-gradient(135deg,#8b0000,#cc0000,#ff2222); color: white; width: 100%; margin-top: 12px; box-shadow: 0 4px 15px rgba(200,0,0,0.5), 0 0 30px rgba(200,0,0,0.2); }
+  .btn-primary:active { transform: scale(0.98); }
+
+  .btn-wa { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; border: none; border-radius: 20px; font-size: 12px; font-weight: 700; padding: 7px 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; box-shadow: 0 2px 10px rgba(34,197,94,0.35); }
+  .btn-wa:active { transform: scale(0.96); }
+
+  .btn-call { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; border: none; border-radius: 20px; font-size: 12px; font-weight: 700; padding: 7px 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; box-shadow: 0 2px 10px rgba(59,130,246,0.35); }
+  .btn-call:active { transform: scale(0.96); }
+
+  .btn-paid { background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; border-radius: 20px; font-size: 12px; font-weight: 700; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+  .btn-paid.done { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+  .btn-paid:active { opacity: 0.85; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag { background: #fef2f2; color: #cc0000; border: 1px solid #fecaca; border-radius: 20px; font-size: 12px; padding: 4px 12px; cursor: pointer; font-weight: 600; }
+  .tag:active { background: #cc0000; color: white; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat { background: #ffffff; border-radius: 16px; padding: 14px; text-align: center; box-shadow: 0 4px 16px rgba(180,0,0,0.15); border: 1px solid #fecaca; position: relative; overflow: hidden; }
+  .stat::before { content:''; position:absolute; top:-20px; right:-20px; width:60px; height:60px; border-radius:50%; background: radial-gradient(circle,rgba(220,0,0,0.12),transparent); }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: #666666; margin-top: 4px; }
+
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 10px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; border: 1.5px solid #fecaca; background: #ffffff; font-size: 12px; font-weight: 600; color: #cc0000; cursor: pointer; }
+  .chip.active { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; border-color: transparent; box-shadow: 0 2px 10px rgba(200,0,0,0.45); }
+
+  .search-wrap { position: relative; margin-bottom: 10px; }
+  .search-wrap input { padding-left: 36px; }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 15px; pointer-events: none; }
+
+  .contact-card { background: #ffffff; border-radius: 16px; padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 2px 12px rgba(180,0,0,0.12), 0 1px 3px rgba(0,0,0,0.3); border: 1px solid #fecaca; transition: all 0.2s; }
+  .contact-card:hover { box-shadow: 0 4px 20px rgba(200,0,0,0.2); border-color: #ff4444; transform: translateY(-1px); }
+  .contact-card.paid-today { border-color: #bbf7d0; background: linear-gradient(145deg,#f0fdf4,white); }
+  .contact-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .contact-name { font-weight: 700; font-size: 15px; color: #1a0000; }
+  .contact-meta { font-size: 11px; color: #666666; margin-top: 2px; }
+  .contact-bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 6px; }
+  .action-btns { display: flex; gap: 6px; }
+
+  .badge { font-size: 11px; padding: 4px 9px; border-radius: 20px; font-weight: 700; white-space: nowrap; }
+  .badge-pending { background: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+  .badge-clear { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+
+  .msg-counter { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700; background: linear-gradient(135deg,rgba(200,0,0,0.1),rgba(220,0,0,0.15)); color: #cc0000; border: 1px solid #fecaca; white-space: nowrap; }
+
+  .counter { font-size: 12px; color: #666666; margin-bottom: 8px; text-align: center; }
+  #status-msg { font-size: 13px; margin-top: 8px; min-height: 14px; }
+  .hint { font-size: 11px; color: #666666; margin-top: 6px; line-height: 1.6; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; backdrop-filter: blur(6px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #ffffff; border-radius: 24px 24px 0 0; padding: 20px; width: 100%; animation: slideUp 0.25s ease; max-height: 85vh; overflow-y: auto; box-shadow: 0 -8px 40px rgba(180,0,0,0.3); border-top: 2px solid #ff4444; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal h3 { font-size: 16px; font-weight: 700; color: #1a0000; margin-bottom: 4px; }
+  .modal .sub { font-size: 13px; color: #666666; margin-bottom: 16px; }
+  .modal label { font-size: 13px; color: #6b7280; display: block; margin-bottom: 6px; font-weight: 600; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+  .modal-btns button { flex: 1; padding: 13px; border-radius: 12px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .modal-cancel { background: #f3f4f6; color: #6b7280; }
+  .modal-confirm { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+  .amount-opts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .amount-opt { padding: 8px 14px; border-radius: 20px; border: 1.5px solid #fecaca; font-size: 14px; font-weight: 700; cursor: pointer; background: #fef2f2; color: #cc0000; }
+  .amount-opt.selected { background: linear-gradient(135deg,#8b0000,#cc0000); color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(200,0,0,0.4); }
+
+  .today-bar { background: linear-gradient(135deg,#fff5f5,#fee2e2); border: 1px solid #fecaca; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; font-size: 13px; color: #16a34a; font-weight: 700; display: none; }
+  .empty { text-align: center; padding: 40px 20px; color: #666666; }
+  .empty p { font-size: 14px; margin-top: 10px; }
+
+  .install-banner { background: linear-gradient(135deg,#1a0000,#8b0000,#cc0000); color: white; border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 4px 20px rgba(180,0,0,0.4); }
+  .install-banner h3 { font-size: 15px; margin-bottom: 8px; }
+  .install-step { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; }
+  .step-num { background: rgba(255,255,255,0.2); border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+
+  .parse-log { background: #fef2f2; border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 11px; color: #666666; max-height: 120px; overflow-y: auto; font-family: monospace; display: none; border: 1px solid #fecaca; }
+  .upload-box { border: 2px dashed #cc0000; border-radius: 14px; padding: 28px 16px; text-align: center; cursor: pointer; background: linear-gradient(135deg,#fff5f5,#fee2e2); margin-bottom: 14px; transition: all 0.2s; }
+  .upload-box:active { background: #fef2f2; border-color: #cc0000; }
+  .upload-icon { font-size: 36px; margin-bottom: 8px; }
+  .upload-box p { font-size: 14px; color: #cc0000; font-weight: 700; margin-bottom: 4px; }
+  .upload-box small { font-size: 12px; color: #666666; }
+  .divider { display: flex; align-items: center; gap: 10px; margin: 14px 0; color: #666666; font-size: 12px; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:#5a0000; }
+  .btn-reminder { background: linear-gradient(135deg,#d97706,#f59e0b); color: white; border: none; border-radius: 20px; font-size: 11px; font-weight: 700; padding: 6px 10px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 8px rgba(245,158,11,0.35); }
+  .btn-reminder.has-reminder { background: linear-gradient(135deg,#8b0000,#cc0000); box-shadow: 0 2px 8px rgba(200,0,0,0.4); }
+  .reminder-badge { font-size: 10px; padding: 2px 7px; border-radius:10px; background: rgba(245,158,11,0.12); color:#d97706; border:1px solid rgba(245,158,11,0.25); white-space:nowrap; margin-top:2px; display:inline-block; }
+  .sync-bar { border-radius:10px; padding:8px 14px; margin-bottom:10px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .sync-ok { background:#f0fdf4; border:1px solid #bbf7d0; color:#16a34a; }
+  .sync-err { background:#fff1f2; border:1px solid #fecaca; color:#dc2626; }
+  .sync-ing { background:#f5f0ff; border:1px solid #ddd6fe; color:#7c3aed; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <!-- WiFi signal logo styled as payment tracker -->
+  <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+    <circle cx="18" cy="18" r="18" fill="rgba(255,255,255,0.15)"/>
+    <!-- WiFi arcs -->
+    <path d="M18 26a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" fill="#f5a623"/>
+    <path d="M11.5 21.5a9 9 0 0 1 13 0" stroke="#f5a623" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M7.5 17.5a14 14 0 0 1 21 0" stroke="rgba(245,166,35,0.55)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <path d="M4 13.5a19 19 0 0 1 28 0" stroke="rgba(245,166,35,0.25)" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+    <!-- Rs symbol -->
+    <text x="14.5" y="34" font-size="7" fill="#f5a623" font-weight="800" font-family="sans-serif">Rs</text>
+  </svg>
+  <div style="flex:1">
+    <h1>Insta-PayTrack</h1>
+    <small id="hdr-sub">No data loaded</small>
+  </div>
+  <button class="export-btn" onclick="exportCSV()">📥 Export</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('contacts',this)">📋 Contacts</div>
+  <div class="tab" onclick="showTab('blast',this)">🚀 Blast</div>
+  <div class="tab" onclick="showTab('data',this)">📥 Data</div>
+  <div class="tab" onclick="showTab('msg',this)">✉️ Msg</div>
+  <div class="tab" onclick="showTab('install',this)">📲 App</div>
+</div>
+
+<!-- BLAST MODE -->
+<div class="page" id="tab-blast">
+
+  <!-- Date group buttons -->
+  <div class="card" id="blast-home">
+    <div class="card-title">🚀 Blast Mode — Select by Date</div>
+    <p style="font-size:13px;color:#888;margin-bottom:16px;line-height:1.7;">Select a date group — only <b>pending</b> contacts will be messaged one by one. WhatsApp will open with the message ready, hit Send then Next!</p>
+    <div id="blast-date-btns" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </div>
+
+  <!-- Active blast session -->
+  <div id="blast-session" style="display:none;">
+    <div class="card" style="text-align:center;">
+      <div id="blast-progress-label" style="font-size:13px;color:#888;margin-bottom:6px;"></div>
+      <div style="background:#f0f0f0;border-radius:99px;height:10px;overflow:hidden;margin-bottom:16px;">
+        <div id="blast-progress-bar" style="height:100%;background:linear-gradient(90deg,#2d2db0,#25d366);border-radius:99px;transition:width 0.3s;width:0%"></div>
+      </div>
+      <div id="blast-contact-name" style="font-size:20px;font-weight:800;color:#1a1a2e;margin-bottom:4px;"></div>
+      <div id="blast-contact-phone" style="font-size:13px;color:#aaa;margin-bottom:4px;"></div>
+      <div id="blast-contact-pending" style="font-size:13px;color:#c84b11;font-weight:700;margin-bottom:20px;"></div>
+
+      <button id="blast-wa-btn" onclick="blastOpenWA()" style="background:#25d366;color:white;border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:800;width:100%;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.532 5.853L.054 23.25a.75.75 0 00.917.919l5.453-1.476A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.694-.523-5.222-1.432l-.374-.222-3.882 1.051 1.063-3.788-.244-.389A9.953 9.953 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>
+        WhatsApp Kholo &amp; Send Karo
+      </button>
+
+      <div style="display:flex;gap:10px;">
+        <button onclick="blastSkip()" style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #ddd;background: #ffffff;font-size:14px;font-weight:700;color:#888;cursor:pointer;">⏭ Skip</button>
+        <button onclick="blastNext()" style="flex:1;padding:12px;border-radius:12px;border:none;background:linear-gradient(135deg,#cc0000,#ff2222);color:white;font-size:14px;font-weight:700;cursor:pointer;">Next ▶</button>
+      </div>
+      <button onclick="blastStop()" style="margin-top:10px;width:100%;padding:10px;border-radius:12px;border:1px solid #fecaca;background:#fff1f2;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">✕ Stop Blast</button>
+    </div>
+  </div>
+
+  <!-- Done screen -->
+  <div id="blast-done" style="display:none;">
+    <div class="card" style="text-align:center;padding:30px 16px;">
+      <div style="font-size:48px;margin-bottom:10px;">🎉</div>
+      <div style="font-size:20px;font-weight:800;color:#2d2db0;margin-bottom:8px;">All Done!</div>
+      <div id="blast-done-msg" style="font-size:14px;color:#888;margin-bottom:20px;"></div>
+      <button onclick="blastReset()" style="background:linear-gradient(135deg,#cc0000,#ff2222);color:white;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;width:100%;cursor:pointer;">↩ Go Back</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- REMINDER MODAL -->
+<div class="modal-overlay" id="reminder-modal">
+  <div class="modal">
+    <h3>🔔 Set Reminder</h3>
+    <div class="sub" id="reminder-modal-name"></div>
+    <label>Note / Task</label>
+    <textarea id="reminder-note" rows="3" placeholder="e.g. Check complaint, Boss said call on 4th..."></textarea>
+    <label style="margin-top:12px">Reminder Date</label>
+    <input type="date" id="reminder-date" style="margin-bottom:4px">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeReminderModal()">Cancel</button>
+      <button style="flex:1;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#d97706,#f59e0b);color:white;" onclick="saveReminder()">💾 Save</button>
+    </div>
+    <button onclick="deleteReminder()" style="width:100%;margin-top:8px;padding:10px;border-radius:10px;border:1px solid #fecaca;background:#fff1f2;color:#dc2626;font-size:13px;font-weight:700;cursor:pointer;">🗑️ Delete Reminder</button>
+  </div>
+</div>
+
+<!-- CONTACTS -->
+<div class="page active" id="tab-contacts">
+  <div id="no-data-msg" class="empty">
+    <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    <p>Load data from the Data tab first</p>
+  </div>
+  <div id="contacts-content" style="display:none">
+    <div class="stats" id="stats-row"></div>
+    <div id="today-bar" class="today-bar"></div>
+    <div class="chips">
+      <div class="chip active" onclick="setFilter('all',this)">Sab</div>
+      <div class="chip" onclick="setFilter('pending',this)">Pending</div>
+      <div class="chip" onclick="setFilter('cleared',this)">Cleared</div>
+      <div class="chip" onclick="setFilter('paid-today',this)">💰 Paid Today</div>
+      <div class="chip" onclick="setFilter('online',this)">Online</div>
+      <div class="chip" onclick="setFilter('sunny',this)">Sunny</div>
+      <div class="chip" onclick="setFilter('faseeh',this)">Faseeh</div>
+    </div>
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-box" placeholder="Search by name or number..." oninput="renderFiltered()">
+    </div>
+    <div class="counter" id="counter-text"></div>
+    <div id="contact-list"></div>
+  </div>
+</div>
+
+<!-- DATA -->
+<div class="page" id="tab-data">
+
+  <!-- GOOGLE SHEET SYNC CARD -->
+  <div class="card">
+    <div class="card-title">🔗 Google Sheet Sync</div>
+    <div id="sync-status-bar" class="sync-bar" style="display:none"></div>
+    <p style="font-size:12px;color: #666666;margin-bottom:10px;">Connected to your Google Sheet for real-time sync</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button onclick="syncFromSheet()" style="flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#2563eb,#3b82f6);color:white;">📥 Load from Sheet</button>
+      <button onclick="syncToSheet()" style="flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#16a34a,#22c55e);color:white;">📤 Push to Sheet</button>
+    </div>
+    <button onclick="rolloverMonth()" style="width:100%;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;background:linear-gradient(135deg,#cc0000,#ff2222);color:white;margin-bottom:4px;">🔄 Rollover to Next Month</button>
+    <p style="font-size:11px;color: #666666;text-align:center;">Copies this month's unpaid to next month automatically</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📥 Excel File Upload</div>
+
+    <!-- FILE UPLOAD BOX -->
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this)">
+    <div class="upload-box" onclick="document.getElementById('file-input').click()">
+      <div class="upload-icon">📂</div>
+      <p>Choose Excel File</p>
+      <small>.xlsx or .xls — directly from phone files</small>
+    </div>
+
+    <div class="divider">or paste below</div>
+
+    <!-- PASTE OPTION -->
+    <label style="font-size:12px;color:#888;margin-bottom:8px;display:block;">Paste tab-separated data from Excel here:</label>
+    <textarea id="raw-data" rows="6" placeholder="1	Yousaf Laghari	32403-3917535-1	03078192244	1st	1300			1300	Sunny&#10;2	Ahmad Ahsan 	36303-2937567-5	03075969057	1st	1300			1300	Online"></textarea>
+    <button class="btn-primary" onclick="parseData()" style="margin-top:10px">✅ Load Pasted Data</button>
+
+    <div id="status-msg" style="margin-top:10px"></div>
+    <div id="parse-log" class="parse-log"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:#c84b11">⚠️ Reset Data</div>
+    <p style="font-size:13px;color:#888;margin-bottom:10px;">Clear all data when starting a new month</p>
+    <button onclick="resetData()" style="background:#fff1f2;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%">🗑️ Reset All Data</button>
+  </div>
+</div>
+
+<!-- MESSAGE -->
+<div class="page" id="tab-msg">
+  <div class="card">
+    <div class="card-title">✉️ Message Template</div>
+    <div class="tags">
+      <span class="tag" onclick="insertTag('{Salutation}')">+ Bhai/Ma'am</span>
+      <span class="tag" onclick="insertTag('{Naam}')">+ Naam</span>
+      <span class="tag" onclick="insertTag('{Pending}')">+ Pending</span>
+      <span class="tag" onclick="insertTag('{Amount}')">+ Monthly</span>
+      <span class="tag" onclick="insertTag('{Date}')">+ Date</span>
+    </div>
+    <textarea id="template" rows="5" oninput="updatePreview()">Assalam o Alaikum {Salutation} {Naam}, your May bill of Rs.{Pending} is pending. Please make the payment at your earliest. Thank you!</textarea>
+
+    <div style="margin-top:10px;">
+      <div style="font-size:12px;color:#888;margin-bottom:5px;font-weight:600;">👁 Preview:</div>
+      <div id="template-preview" style="background:#f4f4ff;border-radius:10px;padding:10px 12px;font-size:13px;color:#1a1a2e;line-height:1.6;border:1px solid #e0e0f0;min-height:40px;"></div>
+    </div>
+
+    <button class="btn-primary" onclick="saveTemplate()">💾 Save Template</button>
+    <p id="save-msg" style="font-size:12px;color:#2d2db0;margin-top:8px;min-height:14px;text-align:center;"></p>
+  </div>
+
+  <!-- Gender override list -->
+  <div class="card">
+    <div class="card-title">👤 Gender Corrections</div>
+    <p style="font-size:12px;color:#888;margin-bottom:10px;">If any name is detected incorrectly (Bhai vs Ma'am), fix it manually here:</p>
+    <div id="gender-corrections-list" style="max-height:200px;overflow-y:auto;margin-bottom:10px;"></div>
+    <div style="display:flex;gap:8px;">
+      <input type="text" id="gc-name" placeholder="Naam (jaise: Kamran)" style="flex:1;">
+      <select id="gc-gender" style="border:1.5px solid #e0e0e0;border-radius:10px;padding:8px;font-size:13px;background:#fafafa;color:#1a1a2e;">
+        <option value="m">Bhai</option>
+        <option value="f">Ma'am</option>
+      </select>
+      <button onclick="addGenderCorrection()" style="background:linear-gradient(135deg,#8b0000,#cc0000);color:white;border:none;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSTALL -->
+<div class="page" id="tab-install">
+  <div class="install-banner">
+    <h3>📲 Phone pe App ki tarah Lagao</h3>
+    <div class="install-step"><div class="step-num">1</div><span>Send this file to yourself on WhatsApp</span></div>
+    <div class="install-step"><div class="step-num">2</div><span>Phone pe Chrome mein kholo</span></div>
+    <div class="install-step"><div class="step-num">3</div><span>Chrome menu (⋮) → "Add to Home screen"</span></div>
+    <div class="install-step"><div class="step-num">4</div><span>Confirm "Add" — Done! 🎉</span></div>
+  </div>
+  <div class="card">
+    <div class="card-title">💰 How to Record Payment</div>
+    <p style="font-size:13px;color:#555;line-height:1.9;">
+      Tap <b>✓ Pay</b> on any contact card<br>
+      → Select or type the amount → Confirm<br>
+      → Card <b style="color:#2e7d32">green</b> ho jaayega<br>
+      → Pending amount updates automatically<br><br>
+      At end of day → tap <b>Export</b> → open in Excel ✅
+    </p>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal">
+    <h3 id="modal-name"></h3>
+    <div class="sub" id="modal-sub"></div>
+    <label>Kitni payment aayi?</label>
+    <div class="amount-opts" id="amount-opts"></div>
+    <input type="number" id="pay-amount" placeholder="Ya yahan amount likho...">
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmPayment()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let contacts = [];
+let activeFilter = 'all';
+let modalIdx = -1;
+
+// ─── ROBUST PHONE CLEANER ───────────────────────────────────────────
+function cleanPhone(raw) {
+  if (!raw) return '';
+  // Remove all non-digit and non-+ chars (spaces, dashes, letters a/c etc)
+  let c = raw.replace(/[^0-9+]/g, '');
+  // Handle international format
+  if (c.startsWith('+92')) c = '92' + c.slice(3);
+  else if (c.startsWith('+971')) return c.replace('+',''); // UAE etc — keep as is
+  else if (c.startsWith('+')) c = c.slice(1); // other intl
+  else if (c.startsWith('0')) c = '92' + c.slice(1);
+  else if (c && !c.startsWith('92')) c = '92' + c;
+  return c;
+}
+
+// ─── ROBUST NUMBER EXTRACTOR ────────────────────────────────────────
+function toNum(str) {
+  if (!str) return 0;
+  const d = str.replace(/[^\d]/g, '');
+  return d ? parseInt(d) : 0;
+}
+
+// ─── EXCEL FILE UPLOAD ──────────────────────────────────────────────
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('status-msg');
+  statusEl.style.color = '#888';
+  statusEl.textContent = '⏳ File parh raha hoon...';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]]; // first sheet
+      // Convert to array of arrays
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+      // Find header row (look for "Full Name" or "Phone")
+      let dataStart = 0;
+      for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const r = rows[i].map(c => String(c).toLowerCase());
+        if (r.some(c => c.includes('full name') || c.includes('phone') || c.includes('naam'))) {
+          dataStart = i + 1;
+          break;
+        }
+      }
+
+      // Build tab-separated text from rows
+      const lines = [];
+      for (let i = dataStart; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || !row[1] || String(row[1]).trim() === '') continue;
+        lines.push(row.slice(0, 10).map(c => String(c === null || c === undefined ? '' : c)).join('\t'));
+      }
+
+      if (!lines.length) {
+        statusEl.style.color = '#c84b11';
+        statusEl.textContent = 'No data found in this file.';
+        return;
+      }
+
+      // Put into textarea and parse
+      document.getElementById('raw-data').value = lines.join('\n');
+      parseData();
+
+    } catch(err) {
+      statusEl.style.color = '#c84b11';
+      statusEl.textContent = 'Could not read file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  // Reset input so same file can be re-selected
+  input.value = '';
+}
+
+// ─── BLAST MODE ─────────────────────────────────────────────────────
+let blastList    = [];
+let blastIdx     = 0;
+let blastSent    = 0;
+let blastSkipped = 0;
+
+function renderBlastButtons() {
+  const el = document.getElementById('blast-date-btns');
+  if (!contacts.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#aaa;text-align:center;">Load Excel data from the Data tab first</p>';
+    return;
+  }
+
+  // Get unique date groups & count pending
+  const groups = {};
+  contacts.forEach(c => {
+    const d = (c.date || 'Unknown').trim();
+    if (!groups[d]) groups[d] = { total: 0, pending: 0 };
+    groups[d].total++;
+    if (c.pendingNum > 0) groups[d].pending++;
+  });
+
+  // Sort: 1st, 5th, 10th, 15th, 20th, 25th etc
+  const order = ['1st','5th','10th','15th','20th','25th','30th'];
+  const sorted = Object.keys(groups).sort((a,b) => {
+    const ai = order.indexOf(a), bi = order.indexOf(b);
+    if (ai === -1 && bi === -1) return a.localeCompare(b);
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
+  el.innerHTML = '';
+  sorted.forEach(date => {
+    const g = groups[date];
+    if (g.pending === 0) return; // skipped groups with no pending
+    const btn = document.createElement('button');
+    btn.style.cssText = 'background:linear-gradient(135deg,#2d2db0,#3a3ac0);color:white;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:700;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;';
+    btn.innerHTML = `
+      <div>
+        <div style="font-size:17px;font-weight:800;">📅 ${date} wale</div>
+        <div style="font-size:12px;opacity:0.8;margin-top:3px;">${g.pending} pending · ${g.total} total</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.2);border-radius:10px;padding:8px 14px;font-size:14px;">Start ▶</div>
+    `;
+    btn.onclick = () => startBlast(date);
+    el.appendChild(btn);
+  });
+
+  if (!el.children.length) {
+    el.innerHTML = '<p style="font-size:13px;color:#2e7d32;text-align:center;font-weight:700;">🎉 🎉 All clear! No pending contacts.</p>';
+  }
+}
+
+function startBlast(date) {
+  blastList    = contacts.filter(c => c.date === date && c.pendingNum > 0 && c.cleanPhone && c.cleanPhone.length >= 10);
+  blastIdx     = 0;
+  blastSent    = 0;
+  blastSkipped = 0;
+
+  if (!blastList.length) { alert('No pending contacts with phone numbers for this date!'); return; }
+
+  document.getElementById('blast-home').style.display    = 'none';
+  document.getElementById('blast-done').style.display    = 'none';
+  document.getElementById('blast-session').style.display = 'block';
+  blastShowCurrent();
+}
+
+function blastShowCurrent() {
+  if (blastIdx >= blastList.length) { blastFinish(); return; }
+  const c     = blastList[blastIdx];
+  const total = blastList.length;
+  const pct   = Math.round((blastIdx / total) * 100);
+
+  document.getElementById('blast-progress-label').textContent = `${blastIdx + 1} / ${total} — ${blastSent} sent, ${blastSkipped} skipped`;
+  document.getElementById('blast-progress-bar').style.width   = pct + '%';
+  document.getElementById('blast-contact-name').textContent    = (c.sr ? c.sr + '. ' : '') + c.naam;
+  document.getElementById('blast-contact-phone').textContent   = c.phone;
+  document.getElementById('blast-contact-pending').textContent = '⏳ Pending: Rs.' + c.pending;
+}
+
+function blastOpenWA() {
+  const c   = blastList[blastIdx];
+  const msg = encodeURIComponent(buildMsg(c));
+  // Track message count
+  const idx = contacts.indexOf(c);
+  if (idx !== -1) {
+    contacts[idx].msgCount = (contacts[idx].msgCount || 0) + 1;
+    saveContacts();
+  }
+  // Open in new tab — app history mein nahi jayega
+  const intentUrl = `intent://send?phone=${c.cleanPhone}&text=${msg}#Intent;package=com.whatsapp;scheme=whatsapp;end`;
+  const a = document.createElement('a');
+  a.href = intentUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function blastNext() {
+  blastSent++;
+  blastIdx++;
+  blastShowCurrent();
+}
+
+function blastSkip() {
+  blastSkipped++;
+  blastIdx++;
+  blastShowCurrent();
+}
+
+function blastFinish() {
+  document.getElementById('blast-session').style.display = 'none';
+  document.getElementById('blast-done').style.display    = 'block';
+  document.getElementById('blast-done-msg').textContent  =
+    `✅ ${blastSent} log ko message bheja gaya\n⏭ ${blastSkipped} skipped kiye gaye`;
+}
+
+function blastStop() {
+  if (!confirm('Blast band karna chahte ho?')) return;
+  blastReset();
+}
+
+function blastReset() {
+  document.getElementById('blast-session').style.display = 'none';
+  document.getElementById('blast-done').style.display    = 'none';
+  document.getElementById('blast-home').style.display    = 'block';
+  renderBlastButtons();
+}
+
+// ─── GENDER DETECTION ───────────────────────────────────────────────
+const FEMALE_NAMES = [
+  'ayesha','aisha','fatima','fatiha','sana','sara','sarah','maryam','mariam',
+  'zainab','zaynab','nadia','naadia','rabia','rabiya','hina','hena','amna',
+  'amina','aminah','kiran','noor','nur','layla','leyla','laila','zara','zahra',
+  'zahrah','rukhsar','rukhsana','shabana','shabnam','samina','sobia','sumaira',
+  'sumaiya','sumaya','saira','sidra','shazia','shehla','sheila','mehwish',
+  'mahwish','mahnoor','mah','nimra','nida','najma','nasreen','nasrin','naila',
+  'nailah','muskan','muskaan','moniba','momina','mominah','madeeha','lubna',
+  'komal','kainat','irum','iqra','huma','hooria','hooriya','hajra','hafsa',
+  'gul','farida','farrukh','fariha','faria','eeman','eman','dua','bushra',
+  'binish','bilqees','bilqis','bareeha','bareera','aroha','arooj','aroosha',
+  'anila','anisa','anisah','anum','anam','aliza','aleesha','aleena','alina',
+  'afshan','afza','afifa','abida','zakia','zakiya','warda','wardah','uzma',
+  'ujala','tooba','tuba','tayyaba','tayyabah','tahira','syeda','syed','swera',
+  'sowera','sobia','sobia','sobia','nighat','misbah','mishal','mishaal',
+  'madiha','madina','lubaba','luba','lajvanti','khadija','khadijah','ifra',
+  'ifeeza','hifza','hifzah','hifsa','hajira','gulshan','gulnaz','gulnaar',
+  'ghazala','fiza','fizah','fozia','fauzia','faryal','faryaal','farzana',
+  'farzanah','esha','eshaa','dure','durre','dilnoza','dilnasa','deeba','diba',
+  'darakhshan','cyra','sira','chanda','chandni','beenish','benish','bakhtawar',
+  'bahar','azeema','azima','attiya','attiyya','asma','asmaa','asmah','asna',
+  'aroha','aroba','aroba','aneela','aneeqa','aneesa','ammara','ammarah',
+  'amara','ambreen','almas','alisha','aleena','akeela','aqeela','afra','sajida',
+  'sadia','raheela','rahila','qurat','qurrat','parisa','pari','palwasha',
+  'nusrat','nusrath','noureen','noreen','naheed','nahid','muqadas','muqdas',
+  'mona','maira','mairah','maham','maheen','mahe','leezan','laizan','kinza',
+  'kinzah','kashaf','kashif','jaweria','javeria','jaweriya','javeria','iqra',
+  'insha','insharah','huda','houda','hoor','hoorain','hoorain','himna','hijab',
+  'hibba','hibah','hiba','hasina','hasnain','hasna','gulrukh','gulrose','gule',
+  'fozia','fauzia','falak','falaq','farhat','farhana','farheen','farida',
+  'eiman','eman','eeman','dur','dure','durr','dina','deena','dana','danah',
+  'cyma','syma','sima','shirin','shireen','shehzadi','shehzada','shahida',
+  'shahidah','seemab','sehar','sehar','sehrish','razan','razia','raziya',
+  'rania','raabia','qaisra','qaisrah','parveen','parween','nausheen','naushin',
+  'nargis','nargiss','muneeba','muneebah','mina','meena','meera','meerab',
+  'mehreen','mehroon','mehreen','masooma','masoomah','marwa','marwah','maryum',
+  'marium','maha','maaz','liza','lisa','laraib','laiba','laibah','kubra',
+  'kubrah','kulsoom','kulsum','khushboo','khushbu','khansa','khansah',
+  'jawairia','javairia','isra','israa','iram','irah','iqra','iqrah','inayat',
+  'haleema','haleemah','halima','halimah','gulbahar','gulbano','gulfam',
+  'fauzia','falak','fajr','fajra','eshaal','eshal','esha','duaa','dua',
+  'dilshad','dilruba','dilnawaz','darya','dania','daniah','cyra','chand',
+  'chandni','busra','busrah','bulbul','binte','bint','beenish','behzadi',
+  'ayesha','azra','azrah','aziza','azizah','aymen','ayman','ayasha','avisha',
+  'aurooj','arooj','aroha','areeba','areebah','areej','areeja','aqsa','aqsah',
+  'anmol','anjum','anjuma','aneela','aneeqah','aneesa','aneesha','amreen',
+  'amrin','amira','amirah','ameen','aminah','alveena','alveenah','alvina',
+  'alina','aleeza','aleezah','aleema','aleemah','aleeha','aleena','aleenah',
+  'aksa','aksah','afnaan','afnan','afifa','afifah','afia','afiah','sadaf',
+  'rahat','ramsha','ramshah','nosheen','noshin','muazma','muazmah','meezan',
+  'meezab','maira','lubna','lubana','laraib','laraibah','inaaya','inaya',
+  'hajra','hajrah','habiba','habibah','gulnaz','gulnaaz','fatimah','fariha',
+  'farihah','emaan','eman','dilnaz','dilnaaz','bisma','bismah','bisham',
+  'azeena','azeen','arooba','aroobah','anoosha','anosha','ammara','almas',
+  'almasa','aleesha','aleeshaa','afsheen','afshaeen','adeeba','adiba','adibah',
+  'zulekha','zuleikha','zoya','zoyah','zoha','zohaa','zobia','zobiya','zobia',
+  'zobia','sehrish','sehrishh','ruqayya','ruqayyah','ruqia','ruqiah'
+];
+
+const MALE_NAMES = [
+  'muhammad','mohd','md','ali','ahmed','ahmad','usman','umer','umar','hassan',
+  'husain','hussain','hamza','hammad','haris','haroon','harun','ibrahim',
+  'ismail','ismaeel','imran','irfan','ijaz','ihtisham','iqbal','ishaq','israr',
+  'jabir','jaffar','jaffer','jamil','junaid','kamran','kashif','khalid','khurram',
+  'majid','mubashir','mudasir','mujahid','muneer','muneeb','mushtaq','muzamil',
+  'naeem','nadeem','nasir','naveed','noman','nouman','omar','osama','qaiser',
+  'qasim','rana','raza','rehan','rizwan','sajid','salman','saad','sabir',
+  'safdar','shahid','shahbaz','shahroz','shoaib','sohail','suleman','sulman',
+  'talha','tariq','usman','waqas','waseem','waqar','yasir','zahid','zafar',
+  'zain','zeeshan','zia','zohaib','zunaif','adeel','adil','adnan','amir',
+  'amjad','anas','ansar','arshad','arsalan','asad','asif','asjad','asghar',
+  'awais','ayub','babar','bilal','danish','daniyal','dilawar','ejaz','fahad',
+  'faheem','faisal','faraz','farhan','faseeh','fasih','ghulam','hafiz','hamid',
+  'huzaifa','ihtisham','ilyas','inayat','javed','jawad','jehanzaib','kaleem',
+  'liaqat','luqman','maher','malik','mansoor','mazhar','muavia','mubin',
+  'mubeen','mughees','mujtaba','mukhtar','mumtaz','munawar','nadir','naik',
+  'qadeer','qayyum','raees','raheel','rashid','raoof','rauf','roshan','saif',
+  'sajawal','sajjad','saleem','sarmad','sarfraz','shafqat','shan','sharjeel',
+  'sheikh','siraj','sohaib','suhail','swaid','tahir','tanveer','tasleem',
+  'ubaid','usama','waleed','wahaj','zia','zubair','aftab','akbar','akmal',
+  'akthar','akhtar','aarib','abubakar','abu','abdal','abdul','abid','aejaz',
+  'ahad','ahsan','ahtisham','ajmal','ajwad','akram','aleem','ali','aliyan',
+  'allama','amaan','amanullah','ammad','ammar','asfand','asfandyar','ashraf',
+  'ateeq','atif','awab','azeem','azhar','aziz','baqir','basit','ch','chaudhry',
+  'dil','dr','ejaz','fida','habib','hafiz','haji','hasnain','ifran','ikhlas',
+  'ilyas','imtiaz','ishfaq','jamshed','jamshaid','jawad','kamal','khawar',
+  'khawaja','lal','m','mian','mir','mirza','mo','moin','mujahid','mukarram',
+  'mumtaz','murtaza','musab','musafir','mutee','muttahir','nawab','nawaz',
+  'nazim','nisar','noor','owais','pir','prof','qari','rao','sahibzada',
+  'salahuddin','salahudin','samiullah','shah','shams','sharif','siddiq',
+  'siddiqui','sir','sultan','syed','taimoor','taimur','umair','waheed',
+  'zaka','zakir','zaman','zameer','zargham','ziauddin','ziyad','zulfiqar'
+];
+
+let genderCorrections = {};
+
+function detectGender(naam) {
+  if (!naam) return 'm';
+  // Check manual corrections first
+  const lower = naam.toLowerCase().trim();
+  if (genderCorrections[lower]) return genderCorrections[lower];
+
+  // Check each word in name
+  const words = lower.split(/\s+/);
+  for (const word of words) {
+    const clean = word.replace(/[^a-z]/g,'');
+    if (FEMALE_NAMES.includes(clean)) return 'f';
+  }
+  // Default male
+  return 'm';
+}
+
+function getSalutation(naam) {
+  return detectGender(naam) === 'f' ? "Ma'am" : 'Bhai';
+}
+
+function addGenderCorrection() {
+  const naam   = document.getElementById('gc-name').value.trim().toLowerCase();
+  const gender = document.getElementById('gc-gender').value;
+  if (!naam) { alert('Naam daalo!'); return; }
+  genderCorrections[naam] = gender;
+  localStorage.setItem('rc_v3_genders', JSON.stringify(genderCorrections));
+  document.getElementById('gc-name').value = '';
+  renderGenderCorrections();
+}
+
+function renderGenderCorrections() {
+  const el = document.getElementById('gender-corrections-list');
+  const keys = Object.keys(genderCorrections);
+  if (!keys.length) { el.innerHTML = '<p style="font-size:12px;color:#bbb;text-align:center;">Koi correction nahi</p>'; return; }
+  el.innerHTML = keys.map(k => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;">
+      <span style="font-size:13px;font-weight:600;">${k}</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span style="font-size:12px;color:#2d2db0;">${genderCorrections[k]==='f'?"Ma'am":'Bhai'}</span>
+        <button onclick="removeGenderCorrection('${k}')" style="background:#fff0e6;color:#c84b11;border:none;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function removeGenderCorrection(naam) {
+  delete genderCorrections[naam];
+  localStorage.setItem('rc_v3_genders', JSON.stringify(genderCorrections));
+  renderGenderCorrections();
+}
+
+function updatePreview() {
+  const tmpl = document.getElementById('template').value;
+  const sample = { naam: 'Ali Khan', pending: '1500', amount: '1500', date: '1st' };
+  let prev = tmpl
+    .replace(/{Salutation}/g, 'Bhai')
+    .replace(/{Naam}/g, sample.naam)
+    .replace(/{Pending}/g, sample.pending)
+    .replace(/{Amount}/g, sample.amount)
+    .replace(/{Date}/g, sample.date);
+  document.getElementById('template-preview').textContent = prev;
+}
+
+// ─── LOAD ON START ──────────────────────────────────────────────────
+window.onload = function() {
+  const saved = localStorage.getItem('rc_v3_contacts');
+  const tmpl  = localStorage.getItem('rc_v3_template');
+  if (saved) {
+    try {
+      contacts = JSON.parse(saved);
+      if (contacts.length) { showContactsUI(); showStats(); renderFiltered(); renderBlastButtons(); checkReminders(); }
+    } catch(e) {}
+  }
+  if (tmpl) document.getElementById('template').value = tmpl;
+  const savedGenders = localStorage.getItem('rc_v3_genders');
+  if (savedGenders) { try { genderCorrections = JSON.parse(savedGenders); } catch(e){} }
+  renderGenderCorrections();
+  updatePreview();
+};
+
+function showContactsUI() {
+  document.getElementById('no-data-msg').style.display = 'none';
+  document.getElementById('contacts-content').style.display = 'block';
+  document.getElementById('hdr-sub').textContent = contacts.length + ' contacts loaded';
+}
+
+function showTab(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ─── PARSE DATA ─────────────────────────────────────────────────────
+function parseData() {
+  const raw = document.getElementById('raw-data').value.trim();
+  const statusEl = document.getElementById('status-msg');
+  const logEl    = document.getElementById('parse-log');
+  if (!raw) { statusEl.style.color='#c84b11'; statusEl.textContent = 'Pehle data paste karo!'; return; }
+
+  const lines = raw.split('\n').filter(l => l.trim());
+  const parsed = [];
+  const warnings = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const parts = lines[i].split('\t');
+
+    // Need at least sr + naam + phone area
+    if (parts.length < 4) { warnings.push('Line ' + (i+1) + ': skipped (kam columns)'); continue; }
+
+    const sr       = (parts[0] || '').trim();
+    const naam     = (parts[1] || '').trim();
+    const nid      = (parts[2] || '').trim();
+    const phoneRaw = (parts[3] || '').trim();
+    const date     = (parts[4] || '').trim();
+    const amount   = (parts[5] || '').trim();
+    const prev     = (parts[6] || '').trim();
+    const received = (parts[7] || '').trim();
+    const pending  = (parts[8] || '').trim();
+    const officer  = (parts[9] || '').trim();
+
+    // Skip header row or empty name or total row
+    if (!naam || naam.toLowerCase().includes('full name') || naam.toLowerCase().includes('total')) continue;
+    // Skip rows that look like total summary (sr is empty and naam starts with Total)
+    if (!sr && !phoneRaw && !amount) continue;
+
+    const cp = cleanPhone(phoneRaw);
+    const pendingNum = toNum(pending);
+    const amountNum  = toNum(amount);
+
+    if (phoneRaw && !cp) warnings.push(naam + ': phone parse nahi hua (' + phoneRaw + ')');
+
+    parsed.push({
+      sr, naam, nid, phone: phoneRaw.replace(/\s/g,''),
+      cleanPhone: cp, date, amount,
+      prev, received,
+      pending: pending || '0',
+      pendingNum,
+      amountNum,
+      officer: officer.toLowerCase(),
+      paidToday: 0
+    });
+  }
+
+  if (!parsed.length) {
+    statusEl.style.color = '#c84b11';
+    statusEl.textContent = 'Koi data parse nahi hua. Excel se tab-separated copy karo, header ke bina.';
+    return;
+  }
+
+  // Show warnings if any
+  if (warnings.length) {
+    logEl.style.display = 'block';
+    logEl.textContent = '⚠️ ' + warnings.join('\n');
+  } else {
+    logEl.style.display = 'none';
+  }
+
+  statusEl.style.color = '#2e7d32';
+  statusEl.textContent = '✅ ' + parsed.length + ' contacts load ho gaye!';
+
+  contacts = parsed;
+  localStorage.setItem('rc_v3_contacts', JSON.stringify(contacts));
+  showContactsUI();
+  showStats();
+  renderFiltered();
+  renderBlastButtons();
+  setTimeout(() => showTab('contacts', document.querySelectorAll('.tab')[0]), 600);
+}
+
+function saveContacts() {
+  localStorage.setItem('rc_v3_contacts', JSON.stringify(contacts));
+}
+
+// ─── STATS ──────────────────────────────────────────────────────────
+function showStats() {
+  const total       = contacts.length;
+  const withPending = contacts.filter(c => c.pendingNum > 0).length;
+  const cleared     = contacts.filter(c => c.pendingNum === 0).length;
+  const totalPend   = contacts.reduce((s,c) => s + c.pendingNum, 0);
+  const todayTotal  = contacts.reduce((s,c) => s + (c.paidToday||0), 0);
+
+  document.getElementById('stats-row').innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-label">Total</div></div>
+    <div class="stat"><div class="stat-val" style="color:#c84b11">${withPending}</div><div class="stat-label">Pending</div></div>
+    <div class="stat"><div class="stat-val" style="color:#2e7d32">${cleared}</div><div class="stat-label">Cleared</div></div>
+    <div class="stat"><div class="stat-val" style="color:#2d2db0;font-size:15px">Rs.${totalPend.toLocaleString()}</div><div class="stat-label">Total Pending</div></div>
+  `;
+  const tb = document.getElementById('today-bar');
+  if (todayTotal > 0) {
+    tb.style.display = 'block';
+    tb.textContent = '💰 Paid today: Rs.' + todayTotal.toLocaleString() + ' (' + contacts.filter(c=>c.paidToday>0).length + ' log)';
+  } else { tb.style.display = 'none'; }
+}
+
+// ─── FILTER ─────────────────────────────────────────────────────────
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderFiltered();
+}
+
+// ─── RENDER ─────────────────────────────────────────────────────────
+function renderFiltered() {
+  const q = (document.getElementById('search-box').value || '').toLowerCase();
+  let list = [...contacts];
+  if (activeFilter === 'pending')    list = list.filter(c => c.pendingNum > 0);
+  else if (activeFilter === 'cleared')    list = list.filter(c => c.pendingNum === 0);
+  else if (activeFilter === 'paid-today') list = list.filter(c => c.paidToday > 0);
+  else if (activeFilter === 'online')     list = list.filter(c => c.officer === 'online');
+  else if (activeFilter === 'sunny')      list = list.filter(c => c.officer === 'sunny');
+  else if (activeFilter === 'faseeh')     list = list.filter(c => c.officer === 'faseeh');
+  if (q) list = list.filter(c => c.naam.toLowerCase().includes(q) || c.phone.includes(q));
+
+  document.getElementById('counter-text').textContent = list.length + ' contacts';
+  const el = document.getElementById('contact-list');
+  el.innerHTML = '';
+
+  list.forEach(c => {
+    const idx      = contacts.indexOf(c);
+    const hasPend  = c.pendingNum > 0;
+    const hasPhone = c.cleanPhone && c.cleanPhone.length >= 10;
+    const paidToday = c.paidToday || 0;
+
+    const div = document.createElement('div');
+    div.className = 'contact-card' + (paidToday > 0 ? ' paid-today' : '');
+    const msgCount = c.msgCount || 0;
+    const msgCountHTML = msgCount > 0 ? `<span class="msg-counter">✉️ ${msgCount}x sent</span>` : '';
+    const reminder = c.reminder || null;
+    const hasReminder = reminder && reminder.note;
+    const reminderHTML = hasReminder
+      ? `<div class="reminder-badge">🔔 ${reminder.date ? reminder.date+': ' : ''}${reminder.note.substring(0,25)}${reminder.note.length>25?'...':''}</div>`
+      : '';
+    div.innerHTML = `
+      <div class="contact-top">
+        <div style="flex:1;min-width:0">
+          <div class="contact-name">${c.sr ? c.sr+'. ':'' }${c.naam}</div>
+          <div class="contact-meta">${c.phone || '—'} · ${c.officer || '—'} · ${c.date || '—'}</div>
+          ${paidToday > 0 ? `<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:2px">💰 Paid today: Rs.${paidToday.toLocaleString()}</div>` : ''}
+          ${reminderHTML}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+          <span class="badge ${hasPend ? 'badge-pending':'badge-clear'}">${hasPend ? 'Rs.'+c.pending : '✓ Clear'}</span>
+          ${msgCountHTML}
+        </div>
+      </div>
+      <div class="contact-bottom">
+        <span style="font-size:11px;color: #666666">Rs.${c.amount}/mo</span>
+        <div class="action-btns">
+          ${hasPend
+            ? `<button class="btn-paid ${paidToday>0?'done':''}" onclick="openPayModal(${idx})">✓ Pay</button>`
+            : `<span style="font-size:11px;color:#16a34a;font-weight:600">✓ Clear</span>`
+          }
+          <button class="btn-reminder ${hasReminder?'has-reminder':''}" onclick="openReminderModal(${idx})" title="Set Reminder">🔔</button>
+          ${hasPhone
+            ? `<button class="btn-call" onclick="openCall(${idx})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1L6.6 10.8z"/></svg>Call</button>`
+            : ''
+          }
+          ${hasPhone
+            ? `<button class="btn-wa" onclick="openWA(${idx})">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.558 4.121 1.532 5.853L.054 23.25a.75.75 0 00.917.919l5.453-1.476A11.952 11.952 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.907 0-3.694-.523-5.222-1.432l-.374-.222-3.882 1.051 1.063-3.788-.244-.389A9.953 9.953 0 012 12C2 6.478 6.478 2 12 2s10 4.478 10 10-4.478 10-10 10z"/></svg>WA</button>`
+            : `<span style="font-size:11px;color: #666666">No #</span>`
+          }
+        </div>
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
+
+// ─── PAYMENT MODAL ──────────────────────────────────────────────────
+function openPayModal(idx) {
+  modalIdx = idx;
+  const c = contacts[idx];
+  document.getElementById('modal-name').textContent = c.naam;
+  document.getElementById('modal-sub').textContent = 'Pending: Rs.' + c.pending + '  |  Monthly: Rs.' + c.amount;
+  document.getElementById('pay-amount').value = '';
+
+  const opts = document.getElementById('amount-opts');
+  opts.innerHTML = '';
+  const suggestions = new Set();
+  if (c.pendingNum > 0) suggestions.add(c.pendingNum);
+  if (c.amountNum && c.amountNum !== c.pendingNum) suggestions.add(c.amountNum);
+  if (c.pendingNum > c.amountNum && c.amountNum) suggestions.add(c.pendingNum - c.amountNum);
+
+  [...suggestions].filter(v => v > 0).forEach(amt => {
+    const b = document.createElement('button');
+    b.className = 'amount-opt';
+    b.textContent = 'Rs.' + amt.toLocaleString();
+    b.onclick = function() {
+      document.querySelectorAll('.amount-opt').forEach(x => x.classList.remove('selected'));
+      this.classList.add('selected');
+      document.getElementById('pay-amount').value = amt;
+    };
+    opts.appendChild(b);
+  });
+
+  document.getElementById('pay-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('pay-modal').classList.remove('open');
+  modalIdx = -1;
+}
+
+function confirmPayment() {
+  const amt = parseInt(document.getElementById('pay-amount').value);
+  if (!amt || amt <= 0) { alert('Please enter amount!'); return; }
+  const c = contacts[modalIdx];
+  const newPending  = Math.max(0, c.pendingNum - amt);
+  c.pendingNum      = newPending;
+  c.pending         = String(newPending);
+  c.paidToday       = (c.paidToday || 0) + amt;
+  c.received        = String((toNum(c.received)) + amt);
+  saveContacts();
+  showStats();
+  renderFiltered();
+  closeModal();
+  // Auto sync payment to Google Sheet
+  syncPaymentToSheet(c);
+}
+
+// ─── CALL ────────────────────────────────────────────────────────────
+function openCall(idx) {
+  const c = contacts[idx];
+  const num = c.phone.replace(/\s/g,'');
+  window.location.href = 'tel:' + num;
+}
+
+// ─── WHATSAPP ───────────────────────────────────────────────────────
+function openWA(idx) {
+  const c   = contacts[idx];
+  const msg = encodeURIComponent(buildMsg(c));
+  // Track message count
+  contacts[idx].msgCount = (c.msgCount || 0) + 1;
+  saveContacts();
+  renderFiltered();
+  // intent URL — normal WhatsApp, new tab taake back button app pe wapis aaye
+  const intentUrl = `intent://send?phone=${c.cleanPhone}&text=${msg}#Intent;package=com.whatsapp;scheme=whatsapp;end`;
+  const a = document.createElement('a');
+  a.href = intentUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function buildMsg(c) {
+  let msg = document.getElementById('template').value;
+  msg = msg.replace(/{Salutation}/g, getSalutation(c.naam));
+  msg = msg.replace(/{Naam}/g,    c.naam);
+  msg = msg.replace(/{Pending}/g, c.pending || c.amount);
+  msg = msg.replace(/{Amount}/g,  c.amount);
+  msg = msg.replace(/{Date}/g,    c.date);
+  return msg;
+}
+
+// ─── TEMPLATE ───────────────────────────────────────────────────────
+function insertTag(tag) {
+  const ta = document.getElementById('template');
+  const s  = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.substring(0, s) + tag + ta.value.substring(e);
+  ta.selectionStart = ta.selectionEnd = s + tag.length;
+  ta.focus();
+}
+
+function saveTemplate() {
+  localStorage.setItem('rc_v3_template', document.getElementById('template').value);
+  const m = document.getElementById('save-msg');
+  m.textContent = '✅ Save ho gaya!';
+  setTimeout(() => m.textContent = '', 2000);
+}
+
+// ─── EXPORT XLSX ────────────────────────────────────────────────────
+function exportCSV() {
+  if (!contacts.length) { alert('Pehle data load karo!'); return; }
+
+  const headers = ['Sr', 'Full Name', 'NID', 'Phone', 'Date', 'Amount', 'Previous', 'Received', 'Pending', 'Officer'];
+  const rows = contacts.map(c => [
+    c.sr, c.naam, c.nid||'', c.phone, c.date, c.amount,
+    c.prev||'', c.received||'', c.pending, c.officer
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Column widths
+  ws['!cols'] = [
+    {wch:5},{wch:22},{wch:18},{wch:14},{wch:6},
+    {wch:8},{wch:10},{wch:10},{wch:10},{wch:8}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Recovery');
+  XLSX.writeFile(wb, 'recovery_updated.xlsx');
+}
+
+// ─── RESET ──────────────────────────────────────────────────────────
+function resetData() {
+  if (!confirm('All data will be deleted. Are you sure?')) return;
+  localStorage.removeItem('rc_v3_contacts');
+  contacts = [];
+  document.getElementById('no-data-msg').style.display = 'block';
+  document.getElementById('contacts-content').style.display = 'none';
+  document.getElementById('hdr-sub').textContent = 'No data loaded';
+  document.getElementById('status-msg').textContent = '';
+  document.getElementById('parse-log').style.display = 'none';
+}
+
+document.getElementById('pay-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+document.getElementById('reminder-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeReminderModal();
+});
+
+// ─── GOOGLE SHEET CONFIG ────────────────────────────────────────────
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwNS5N-SnIlGliJ0KMIYM-4XMQIu9Mu5Pux6V2Ch5_4-vozW70HHGS_5il2oeU6Bqo/exec';
+
+function showSyncBar(msg, type) {
+  const el = document.getElementById('sync-status-bar');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.className = 'sync-bar ' + (type || 'sync-ing');
+  el.innerHTML = msg;
+  if (type === 'sync-ok') setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+async function syncFromSheet() {
+  showSyncBar('⏳ Loading from Google Sheet...', 'sync-ing');
+  try {
+    const res = await fetch(SHEET_URL + '?action=getData&t=' + Date.now(), {
+      method: 'GET',
+      redirect: 'follow',
+    });
+    const data = await res.json();
+    if (data.error) { showSyncBar('❌ ' + data.error, 'sync-err'); return; }
+    const localMap = {};
+    contacts.forEach(c => { localMap[c.naam] = c; });
+    contacts = data.contacts.map(c => {
+      const local = localMap[c.naam] || {};
+      const pendingNum = parseInt((c.pending||'').replace(/[^\d]/g,'')) || 0;
+      const amountNum  = parseInt((c.amount||'').replace(/[^\d]/g,'')) || 0;
+      return { ...c, pendingNum, amountNum, cleanPhone: cleanPhone(c.phone),
+        paidToday: local.paidToday || 0, msgCount: local.msgCount || 0, reminder: local.reminder || null };
+    });
+    saveContacts();
+    showContactsUI();
+    showStats();
+    renderFiltered();
+    renderBlastButtons();
+    showSyncBar('✅ ' + contacts.length + ' contacts loaded!', 'sync-ok');
+    checkReminders();
+  } catch(e) { showSyncBar('❌ Error: ' + e.message, 'sync-err'); }
+}
+
+async function syncToSheet() {
+  if (!contacts.length) { showSyncBar('❌ No contacts!', 'sync-err'); return; }
+  showSyncBar('⏳ Pushing to Google Sheet...', 'sync-ing');
+  try {
+    const res = await fetch(SHEET_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({ action: 'syncAll', contacts })
+    });
+    const data = await res.json();
+    if (data.error) { showSyncBar('❌ ' + data.error, 'sync-err'); return; }
+    showSyncBar('✅ ' + data.synced + ' contacts synced!', 'sync-ok');
+  } catch(e) { showSyncBar('❌ Error: ' + e.message, 'sync-err'); }
+}
+
+async function syncPaymentToSheet(c) {
+  try {
+    await fetch(SHEET_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({ action: 'updatePayment', naam: c.naam,
+        newPending: c.pending, newReceived: c.received })
+    });
+  } catch(e) {}
+}
+
+async function rolloverMonth() {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  const nextMonth = months[(now.getMonth() + 1) % 12];
+  const year = String(now.getFullYear()).slice(2);
+  const nextName = nextMonth + '-' + year;
+  if (!confirm('Roll over to ' + nextName + '?\n\nUnpaid contacts will carry forward.')) return;
+  showSyncBar('⏳ Creating ' + nextName + '...', 'sync-ing');
+  try {
+    const res = await fetch(SHEET_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      body: JSON.stringify({ action: 'rolloverMonth', currentMonth: 'May-26', nextMonth: nextName })
+    });
+    const data = await res.json();
+    if (data.error) { showSyncBar('❌ ' + data.error, 'sync-err'); return; }
+    showSyncBar('✅ ' + nextName + ' created! ' + data.carriedOver + ' carried over.', 'sync-ok');
+    alert('✅ ' + nextName + ' sheet created!\n📋 Total: ' + data.totalContacts + '\n⏳ Carried over: ' + data.carriedOver);
+  } catch(e) { showSyncBar('❌ Error: ' + e.message, 'sync-err'); }
+}
+
+// ─── REMINDER SYSTEM ────────────────────────────────────────────────
+let reminderIdx = -1;
+
+function openReminderModal(idx) {
+  reminderIdx = idx;
+  const c = contacts[idx];
+  document.getElementById('reminder-modal-name').textContent = '📋 ' + c.naam;
+  const r = c.reminder || {};
+  document.getElementById('reminder-note').value = r.note || '';
+  document.getElementById('reminder-date').value = r.date || '';
+  document.getElementById('reminder-modal').classList.add('open');
+}
+
+function closeReminderModal() {
+  document.getElementById('reminder-modal').classList.remove('open');
+  reminderIdx = -1;
+}
+
+function saveReminder() {
+  const note = document.getElementById('reminder-note').value.trim();
+  const date = document.getElementById('reminder-date').value;
+  if (!note) { alert('Please write a note first!'); return; }
+  contacts[reminderIdx].reminder = { note, date };
+  saveContacts();
+  renderFiltered();
+  closeReminderModal();
+}
+
+function deleteReminder() {
+  if (!confirm('Delete this reminder?')) return;
+  contacts[reminderIdx].reminder = null;
+  saveContacts();
+  renderFiltered();
+  closeReminderModal();
+}
+
+function checkReminders() {
+  const today = new Date().toISOString().split('T')[0];
+  const due = contacts.filter(c => c.reminder && c.reminder.date === today);
+  if (!due.length) return;
+  setTimeout(() => {
+    let msg = '🔔 ' + due.length + ' Reminder(s) for Today!\n\n';
+    due.forEach(c => { msg += '• ' + c.naam + ': ' + c.reminder.note + '\n'; });
+    alert(msg);
+  }, 800);
+}
+</script>
+</body>
+</html>
