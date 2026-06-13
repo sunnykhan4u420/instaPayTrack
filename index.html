@@ -637,6 +637,42 @@ function initCloudSync() {
       _suppressPush = false;
     });
 
+    _db.ref(base + '/rashid').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        rashidUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('rashid_users', JSON.stringify(rashidUsers));
+        if (typeof renderRashidList === 'function') renderRashidList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
+    _db.ref(base + '/cable').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        cableUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('cable_users', JSON.stringify(cableUsers));
+        if (typeof renderCableList === 'function') renderCableList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
+    _db.ref(base + '/personal').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        personalUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('personal_users', JSON.stringify(personalUsers));
+        if (typeof renderPersonalList === 'function') renderPersonalList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
   } catch(e) {
     console.error('Cloud init failed:', e);
     _showCloudBadge('⚠️ Cloud error');
@@ -645,7 +681,7 @@ function initCloudSync() {
 
 function cloudPush(key, value) {
   if (!CLOUD_READY || _suppressPush) return;
-  const map = { 'rc_v3_contacts': 'contacts', 'mueez_users': 'mueez' };
+  const map = { 'rc_v3_contacts': 'contacts', 'mueez_users': 'mueez', 'rashid_users': 'rashid', 'cable_users': 'cable', 'personal_users': 'personal' };
   const path = map[key];
   if (!path) return;
   try {
@@ -658,7 +694,7 @@ function cloudPush(key, value) {
 const _origSet = localStorage.setItem.bind(localStorage);
 localStorage.setItem = function(k, v) {
   _origSet(k, v);
-  if (k === 'rc_v3_contacts' || k === 'mueez_users') cloudPush(k, v);
+  if (['rc_v3_contacts','mueez_users','rashid_users','cable_users','personal_users'].includes(k)) cloudPush(k, v);
 };
 
 function _showCloudBadge(txt) {
