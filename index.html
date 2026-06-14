@@ -637,42 +637,6 @@ function initCloudSync() {
       _suppressPush = false;
     });
 
-    _db.ref(base + '/rashid').on('value', snap => {
-      const remote = snap.val();
-      if (!remote) return;
-      _suppressPush = true;
-      try {
-        rashidUsers = Array.isArray(remote) ? remote : Object.values(remote);
-        _origSet('rashid_users', JSON.stringify(rashidUsers));
-        if (typeof renderRashidList === 'function') renderRashidList();
-      } catch(e){ console.error(e); }
-      _suppressPush = false;
-    });
-
-    _db.ref(base + '/cable').on('value', snap => {
-      const remote = snap.val();
-      if (!remote) return;
-      _suppressPush = true;
-      try {
-        cableUsers = Array.isArray(remote) ? remote : Object.values(remote);
-        _origSet('cable_users', JSON.stringify(cableUsers));
-        if (typeof renderCableList === 'function') renderCableList();
-      } catch(e){ console.error(e); }
-      _suppressPush = false;
-    });
-
-    _db.ref(base + '/personal').on('value', snap => {
-      const remote = snap.val();
-      if (!remote) return;
-      _suppressPush = true;
-      try {
-        personalUsers = Array.isArray(remote) ? remote : Object.values(remote);
-        _origSet('personal_users', JSON.stringify(personalUsers));
-        if (typeof renderPersonalList === 'function') renderPersonalList();
-      } catch(e){ console.error(e); }
-      _suppressPush = false;
-    });
-
   } catch(e) {
     console.error('Cloud init failed:', e);
     _showCloudBadge('⚠️ Cloud error');
@@ -681,7 +645,7 @@ function initCloudSync() {
 
 function cloudPush(key, value) {
   if (!CLOUD_READY || _suppressPush) return;
-  const map = { 'rc_v3_contacts': 'contacts', 'mueez_users': 'mueez', 'rashid_users': 'rashid', 'cable_users': 'cable', 'personal_users': 'personal' };
+  const map = { 'rc_v3_contacts': 'contacts', 'mueez_users': 'mueez' };
   const path = map[key];
   if (!path) return;
   try {
@@ -694,7 +658,7 @@ function cloudPush(key, value) {
 const _origSet = localStorage.setItem.bind(localStorage);
 localStorage.setItem = function(k, v) {
   _origSet(k, v);
-  if (['rc_v3_contacts','mueez_users','rashid_users','cable_users','personal_users'].includes(k)) cloudPush(k, v);
+  if (k === 'rc_v3_contacts' || k === 'mueez_users') cloudPush(k, v);
 };
 
 function _showCloudBadge(txt) {
@@ -757,27 +721,48 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
 <div class="page" id="tab-cable">
   <div class="card">
     <div class="card-title">📡 Cable Connections</div>
-    <div class="stats" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
-      <div class="stat"><div class="stat-val" id="cable-total-users">0</div><div class="stat-label">Connections</div></div>
-      <div class="stat"><div class="stat-val" style="color:#2e7d32;font-size:16px;" id="cable-total-bill">Rs.0</div><div class="stat-label">Monthly</div></div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-val">0</div>
+        <div class="stat-label">Connections</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">0</div>
+        <div class="stat-label">Monthly Bills</div>
+      </div>
     </div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="font-size:13px;">➕ Add Cable Customer</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Name</label><input type="text" id="cb-naam" placeholder="Customer Name"></div>
-      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Phone</label><input type="text" id="cb-phone" placeholder="03xxxxxxxxx"></div>
-      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Address</label><input type="text" id="cb-address" placeholder="Customer Address"></div>
-      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Monthly Bill</label><input type="number" id="cb-bill" placeholder="Amount"></div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" placeholder="Search Cable Customer...">
     </div>
-    <button onclick="addCableUser()" class="btn-primary">➕ Add Customer</button>
+
+    <div class="contact-card">
+      <div class="contact-top">
+        <div>
+          <div class="contact-name">Mueez Bhai Customer</div>
+          <div class="contact-meta">CNIC: 35202-XXXXXXX-X</div>
+          <div class="contact-meta">Address: Customer Address</div>
+        </div>
+        <div class="badge badge-pending">Bill Pending</div>
+      </div>
+
+      <div class="contact-bottom">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#cc0000;">Monthly Bill: Rs 0</div>
+        </div>
+
+        <div class="action-btns" style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-primary" style="width:auto;padding:8px 14px;margin-top:0;font-size:12px;" onclick="alert('Add User feature ready!')">➕ Add User</button>
+          <button class="btn-wa" onclick="alert('No phone number on this demo customer.')">WhatsApp</button>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary">📤 Export Cable Data</button>
+    <button onclick="exportCableData()" style="margin-top:8px;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 3px 10px rgba(5,150,105,0.4);">&#128202; Export Cable Excel</button>
   </div>
-  <div class="search-wrap" style="margin-bottom:10px;">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="cable-search" placeholder="Search Cable Customer..." oninput="renderCableList()">
-  </div>
-  <div id="cable-list"></div>
-  <button onclick="exportCableData()" style="margin-top:8px;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:12px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 3px 10px rgba(5,150,105,0.4);">📊 Export Cable Excel</button>
 </div>
 
 <!-- BLAST MODE -->
@@ -901,8 +886,6 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
     
     <button class="btn-primary" onclick="parseData('online')" style="margin-top:10px">&#9989; Load Online Data</button>
     <div id="status-msg-online" style="margin-top:10px;font-size:13px;"></div>
-    
-
   </div>
 
   <!-- SUNNY OFFLINE SHEET SYNC -->
@@ -925,8 +908,6 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
     
     <button class="btn-primary" onclick="parseData('sunny')" style="margin-top:10px">&#9989; Load Sunny Data</button>
     <div id="status-msg-sunny" style="margin-top:10px;font-size:13px;"></div>
-    
-
   </div>
 
   <!-- Rollover -->
@@ -938,8 +919,19 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
 
   <div class="card">
     <div class="card-title" style="color:#c84b11">&#9888;&#65039; Reset Data</div>
-    <p style="font-size:13px;color:#888;margin-bottom:10px;">Clear all data when starting a new month</p>
-    <button onclick="resetData()" style="background:#fff1f2;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;width:100%">&#128465;&#65039; Reset All Data</button>
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">Sirf wahi data reset karo jo chahiye — dusra safe rahega</p>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="resetOnlineData()" style="background:#fff0f0;color:#cc0000;border:1.5px solid #fecaca;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">&#127760; Reset Online Data Only</button>
+      <button onclick="resetSunnyData()" style="background:#fffbeb;color:#92400e;border:1.5px solid #fde68a;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">&#9728;&#65039; Reset Sunny Data Only</button>
+      <button onclick="resetData()" style="background:#fff1f2;color:#dc2626;border:1.5px solid #fecaca;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;width:100%;">&#128465;&#65039; Reset ALL Data</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="color:#1a237e">&#8630; Undo Last Upload</div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">Ghalti se upload ho gaya? Ek step peeche jao</p>
+    <div id="undo-info" style="font-size:12px;color:#888;margin-bottom:8px;min-height:16px;"></div>
+    <button onclick="undoLastUpload()" id="undo-btn" style="background:#e8eaf6;color:#1a237e;border:1.5px solid #9fa8da;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;width:100%;opacity:0.5;" disabled>&#8630; Undo Last Upload</button>
   </div>
 </div>
 
@@ -1076,42 +1068,6 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
   </div>
 </div>
 
-
-<!-- CABLE EDIT MODAL -->
-<div class="modal-overlay" id="cable-edit-modal">
-  <div class="modal">
-    <h3>✏️ Edit Cable Customer</h3>
-    <div class="edit-grid">
-      <div class="full"><label>Name</label><input type="text" id="ce-naam"></div>
-      <div class="full"><label>Phone / Contact Number</label><input type="text" id="ce-phone" placeholder="03xxxxxxxxx"></div>
-      <div class="full"><label>Address</label><input type="text" id="ce-address" placeholder="Customer Address"></div>
-      <div class="full"><label>Monthly Bill (Rs.)</label><input type="number" id="ce-bill" placeholder="0"></div>
-    </div>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeCableEdit()">Cancel</button>
-      <button class="modal-confirm" onclick="saveCableEdit()">✅ Save</button>
-    </div>
-    <button onclick="deleteCableFromEdit()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;border:1.5px solid #fecaca;background:#fff5f5;color:#cc0000;font-weight:700;font-size:13px;cursor:pointer;">🗑️ Delete</button>
-  </div>
-</div>
-
-<!-- RASHID EDIT MODAL -->
-<div class="modal-overlay" id="rashid-edit-modal">
-  <div class="modal">
-    <h3>✏️ Edit Rashid User</h3>
-    <div class="edit-grid">
-      <div class="full"><label>Name</label><input type="text" id="re-naam"></div>
-      <div class="full"><label>Phone / Contact Number</label><input type="text" id="re-phone" placeholder="03xxxxxxxxx"></div>
-      <div class="full"><label>Address</label><input type="text" id="re-address" placeholder="Customer Address"></div>
-      <div class="full"><label>Monthly Bill (Rs.)</label><input type="number" id="re-bill" placeholder="350 or 400"></div>
-    </div>
-    <div class="modal-btns">
-      <button class="modal-cancel" onclick="closeRashidEdit()">Cancel</button>
-      <button class="modal-confirm" onclick="saveRashidEdit()">✅ Save</button>
-    </div>
-    <button onclick="deleteRashidFromEdit()" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;border:1.5px solid #fecaca;background:#fff5f5;color:#cc0000;font-weight:700;font-size:13px;cursor:pointer;">🗑️ Delete</button>
-  </div>
-</div>
 
 <!-- EDIT CONTACT MODAL -->
 <div class="modal-overlay" id="edit-modal">
@@ -1602,14 +1558,20 @@ function renderComparison(results) {
       label = 'Amount Mismatch';
       detail = `Boss: Received <b>Rs.${r.bossReceived}</b>, Pending <b>Rs.${r.bossPending}</b><br>You: Received <b>Rs.${r.myReceived}</b>, Pending <b>Rs.${r.myPending}</b>`;
     }
+    // Apply button — sirf wahan dikhao jahan boss ka data available hai
+    const canApply = (r.type === 'boss-paid-more' || r.type === 'mismatch' || r.type === 'missing-me');
+    const applyBtn = canApply
+      ? `<button onclick="applyBossChange('${r.naam.replace(/'/g,"\'")}')" style="background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;border-radius:20px;padding:7px 14px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(26,35,126,0.4);">&#10003; Apply Boss Change</button>`
+      : '';
     return `<div style="background:#fff;border-left:4px solid ${color};border-radius:0 12px 12px 0;padding:12px 14px;margin-bottom:8px;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-        <div>
+        <div style="flex:1;">
           <div style="font-size:14px;font-weight:700;color:#1a0000;">${icon} ${r.naam}</div>
           <div style="font-size:11px;color:#888;margin-top:2px;">${r.phone} · ${r.date}</div>
           <div style="font-size:12px;color:${color};font-weight:700;margin-top:4px;">${label}</div>
           <div style="font-size:12px;color:#555;margin-top:4px;line-height:1.8;">${detail}</div>
         </div>
+        <div style="flex-shrink:0;padding-top:4px;">${applyBtn}</div>
       </div>
     </div>`;
   }).join('');
@@ -1645,6 +1607,90 @@ async function loadMySheetForCompare(sheetType) {
   }
 }
 
+// ─── RESET ONLINE / SUNNY ──────────────────────────────────────────
+function resetOnlineData() {
+  if (!confirm('Sirf Online data delete hoga. Sunny data safe rahega. Confirm?')) return;
+  _saveUndoSnapshot('online');
+  contacts = contacts.filter(c => c.sheetType !== 'online');
+  saveContacts(); showStats(); renderFiltered(); renderBlastButtons();
+  if (!contacts.length) { document.getElementById('no-data-msg').style.display='block'; document.getElementById('contacts-content').style.display='none'; }
+  alert('✅ Online data reset ho gaya. Sunny data safe hai.');
+}
+
+function resetSunnyData() {
+  if (!confirm('Sirf Sunny (Offline) data delete hoga. Online data safe rahega. Confirm?')) return;
+  _saveUndoSnapshot('sunny');
+  contacts = contacts.filter(c => c.sheetType !== 'sunny');
+  saveContacts(); showStats(); renderFiltered(); renderBlastButtons();
+  if (!contacts.length) { document.getElementById('no-data-msg').style.display='block'; document.getElementById('contacts-content').style.display='none'; }
+  alert('✅ Sunny data reset ho gaya. Online data safe hai.');
+}
+
+// ─── UNDO LAST UPLOAD ──────────────────────────────────────────────
+let _undoSnapshot = null;
+let _undoType     = null;
+
+function _saveUndoSnapshot(sheetType) {
+  _undoSnapshot = JSON.parse(JSON.stringify(contacts));
+  _undoType     = sheetType;
+  localStorage.setItem('undo_snapshot', JSON.stringify(_undoSnapshot));
+  localStorage.setItem('undo_type', _undoType);
+  const btn  = document.getElementById('undo-btn');
+  const info = document.getElementById('undo-info');
+  if (btn)  { btn.disabled = false; btn.style.opacity = '1'; }
+  if (info) info.textContent = '⚡ Last action: ' + sheetType.charAt(0).toUpperCase()+sheetType.slice(1) + ' upload — can be undone';
+}
+
+function undoLastUpload() {
+  const snap = _undoSnapshot || JSON.parse(localStorage.getItem('undo_snapshot') || 'null');
+  const type = _undoType     || localStorage.getItem('undo_type') || '';
+  if (!snap) { alert('Koi undo snapshot nahi mila!'); return; }
+  if (!confirm('Last ' + type + ' upload wapis lena chahte ho?')) return;
+  contacts = snap;
+  saveContacts(); showStats(); renderFiltered(); renderBlastButtons();
+  if (contacts.length) showContactsUI();
+  _undoSnapshot = null; _undoType = null;
+  localStorage.removeItem('undo_snapshot'); localStorage.removeItem('undo_type');
+  const btn  = document.getElementById('undo-btn');
+  const info = document.getElementById('undo-info');
+  if (btn)  { btn.disabled = true; btn.style.opacity = '0.5'; }
+  if (info) info.textContent = '✅ Undo successful!';
+}
+
+// ─── APPLY BOSS CHANGE ─────────────────────────────────────────────
+function applyBossChange(naam) {
+  const key  = naam.trim().toLowerCase();
+  const boss = bossContacts.find(b => b.naam.trim().toLowerCase() === key);
+  if (!boss) { alert('Boss contact nahi mila: ' + naam); return; }
+  if (!confirm('Boss ki values apply karo: ' + naam + '? Received: Rs.' + (boss.received||0) + ', Pending: Rs.' + (boss.pending||0))) return;
+
+  // Save undo before applying
+  _saveUndoSnapshot('compare');
+
+  const idx = contacts.findIndex(c => c.naam.trim().toLowerCase() === key);
+  if (idx >= 0) {
+    // Update existing
+    contacts[idx].received   = String(boss.received || 0);
+    contacts[idx].pending    = String(boss.pending  || 0);
+    contacts[idx].pendingNum = toNum(boss.pending);
+  } else {
+    // Add missing contact from boss file
+    contacts.push({
+      sr: boss.sr || '', naam: boss.naam, nid: boss.nid || '',
+      phone: boss.phone || '', cleanPhone: cleanPhone(boss.phone||''),
+      date: boss.date || '', amount: boss.amount || '0',
+      amountNum: toNum(boss.amount), received: String(boss.received||0),
+      pending: String(boss.pending||0), pendingNum: toNum(boss.pending),
+      prev: boss.prev || '', paidToday: 0, sheetType: 'online'
+    });
+  }
+  saveContacts(); showStats(); renderFiltered();
+
+  // Re-run comparison to refresh list
+  runComparison();
+  alert('✅ Applied! "' + naam + '" updated.');
+}
+
 window.onload = function() {
   const saved = localStorage.getItem('rc_v3_contacts');
   const tmpl  = localStorage.getItem('rc_v3_template');
@@ -1653,6 +1699,17 @@ window.onload = function() {
       contacts = JSON.parse(saved);
       if (contacts.length) { showContactsUI(); showStats(); renderFiltered(); renderBlastButtons(); if (typeof checkReminders === 'function') checkReminders(); }
     } catch(e) {}
+  }
+  // Restore undo state if exists
+  const undoSnap = localStorage.getItem('undo_snapshot');
+  const undoTyp  = localStorage.getItem('undo_type');
+  if (undoSnap && undoTyp) {
+    _undoSnapshot = JSON.parse(undoSnap);
+    _undoType     = undoTyp;
+    const btn  = document.getElementById('undo-btn');
+    const info = document.getElementById('undo-info');
+    if (btn)  { btn.disabled = false; btn.style.opacity = '1'; }
+    if (info) info.textContent = '⚡ Last action: ' + undoTyp.charAt(0).toUpperCase()+undoTyp.slice(1) + ' upload — can be undone';
   }
   if (tmpl) document.getElementById('template').value = tmpl;
   const savedGenders = localStorage.getItem('rc_v3_genders');
@@ -1710,6 +1767,8 @@ function parseData(sheetType) {
   const raw = document.getElementById(rawId).value.trim();
   const statusEl = document.getElementById(statusId);
   if (!raw) { statusEl.style.color='#c84b11'; statusEl.textContent = 'Please paste data first!'; return; }
+  // Save undo snapshot before replacing
+  _saveUndoSnapshot(sheetType);
 
   const lines = raw.split('\n').filter(l => l.trim());
   const parsed = [];
@@ -2546,16 +2605,16 @@ function previewRashidSplit() {
 }
 
 function addRashidUser() {
-  const naam    = document.getElementById('rb-naam').value.trim();
-  const phone   = document.getElementById('rb-phone').value.trim();
-  const address = (document.getElementById('rb-address') ? document.getElementById('rb-address').value.trim() : '');
-  const bill    = toNum(document.getElementById('rb-bill').value);
+  const naam  = document.getElementById('rb-naam').value.trim();
+  const phone = document.getElementById('rb-phone').value.trim();
+  const nid   = document.getElementById('rb-nid').value.trim();
+  const bill  = toNum(document.getElementById('rb-bill').value);
 
   if (!naam || !bill) { alert('Name and Bill are required!'); return; }
 
   const split = getRashidSplit(bill);
   rashidUsers.push({
-    naam, phone, address, bill,
+    naam, phone, nid, bill,
     mine: split.mine, theirs: split.theirs,
     paid: false, paidDate: null,
     addedOn: new Date().toLocaleDateString('en-PK')
@@ -2564,7 +2623,7 @@ function addRashidUser() {
 
   document.getElementById('rb-naam').value = '';
   document.getElementById('rb-phone').value = '';
-  if (document.getElementById('rb-address')) document.getElementById('rb-address').value = '';
+  document.getElementById('rb-nid').value = '';
   document.getElementById('rb-bill').value = '';
   document.getElementById('rb-split-preview').textContent = '';
   renderRashidList();
@@ -2604,23 +2663,19 @@ function renderRashidList() {
       <div class="contact-top">
         <div style="flex:1">
           <div class="contact-name">${u.naam}</div>
-          <div class="contact-meta">${u.phone || '—'} &middot; 📍 ${u.address || '—'}</div>
+          <div class="contact-meta">${u.phone || '—'} &middot; CNIC: ${u.nid || '—'}</div>
           <div style="font-size:12px;margin-top:4px;">
             Total: <b>Rs.${u.bill}</b> &nbsp;|&nbsp;
             Mine: <b style="color:#cc0000;">Rs.${u.mine}</b> &nbsp;|&nbsp;
             Rashid: <b style="color:#d97706;">Rs.${u.theirs}</b>
           </div>
-          ${u.paid ? '<div style="font-size:11px;color:#16a34a;margin-top:2px;">✅ Paid: ' + u.paidDate + '</div>' : ''}
+          ${u.paid ? '<div style="font-size:11px;color:#16a34a;margin-top:2px;">Paid: ' + u.paidDate + '</div>' : ''}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          <span class="badge ${u.paid ? 'badge-clear' : 'badge-pending'}">${u.paid ? 'Paid' : 'Pending'}</span>
-          <button class="btn-edit" onclick="openRashidEdit(${i})" style="background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;border-radius:20px;font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;">✏️ Edit</button>
-        </div>
+        <span class="badge ${u.paid ? 'badge-clear' : 'badge-pending'}">${u.paid ? 'Paid' : 'Pending'}</span>
       </div>
       <div class="contact-bottom">
         <span style="font-size:11px;color:#888;">Added: ${u.addedOn}</span>
         <div class="action-btns">
-          ${u.phone ? `<button onclick="window.location.href='tel:${u.phone}'" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:20px;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;">📞 Call</button>` : ''}
           ${waNum ? `<button class="btn-wa" onclick="window.open('https://wa.me/${waNum}','_blank')">WhatsApp</button>` : ''}
           <button onclick="toggleRashidPaid(${i})" class="btn-paid ${u.paid ? 'done' : ''}">&#10003; ${u.paid ? 'Clear' : 'Pay'}</button>
           <button onclick="deleteRashidUser(${i})" style="background:#fff1f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;">&#10005;</button>
@@ -2629,144 +2684,6 @@ function renderRashidList() {
     </div>`;
   }).join('');
 }
-
-// ─── CABLE ────────────────────────────────────────────────────────────
-let cableUsers = JSON.parse(localStorage.getItem('cable_users') || '[]');
-
-function saveCableUsers() { localStorage.setItem('cable_users', JSON.stringify(cableUsers)); }
-
-function addCableUser() {
-  const naam    = document.getElementById('cb-naam').value.trim();
-  const phone   = document.getElementById('cb-phone').value.trim();
-  const address = document.getElementById('cb-address').value.trim();
-  const bill    = parseInt(document.getElementById('cb-bill').value) || 0;
-  if (!naam || !bill) { alert('Name aur Bill zaruri hain!'); return; }
-  cableUsers.push({ naam, phone, address, bill, paid: false, paidDate: null, addedOn: new Date().toLocaleDateString('en-PK') });
-  saveCableUsers();
-  document.getElementById('cb-naam').value = '';
-  document.getElementById('cb-phone').value = '';
-  document.getElementById('cb-address').value = '';
-  document.getElementById('cb-bill').value = '';
-  renderCableList();
-}
-
-function toggleCablePaid(idx) {
-  cableUsers[idx].paid = !cableUsers[idx].paid;
-  cableUsers[idx].paidDate = cableUsers[idx].paid ? new Date().toLocaleDateString('en-PK') : null;
-  saveCableUsers(); renderCableList();
-}
-
-function deleteCableUser(idx) {
-  if (!confirm('Delete "' + cableUsers[idx].naam + '"?')) return;
-  cableUsers.splice(idx, 1); saveCableUsers(); renderCableList();
-}
-
-function renderCableList() {
-  const q   = (document.getElementById('cable-search') ? document.getElementById('cable-search').value.toLowerCase() : '');
-  const el  = document.getElementById('cable-list');
-  if (!el) return;
-  const list = cableUsers.filter(u => !q || (u.naam||'').toLowerCase().includes(q) || (u.phone||'').includes(q));
-  const totalBill = cableUsers.reduce((s, u) => s + (u.bill||0), 0);
-  const totalEl = document.getElementById('cable-total-users');
-  const billEl  = document.getElementById('cable-total-bill');
-  if (totalEl) totalEl.textContent = cableUsers.length;
-  if (billEl)  billEl.textContent  = 'Rs.' + totalBill.toLocaleString();
-  if (!list.length) { el.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;">Koi customer nahi</div>'; return; }
-  el.innerHTML = list.map((u, i) => {
-    const realIdx = cableUsers.indexOf(u);
-    const waPhone = (u.phone||'').replace(/\D/g,'');
-    const waNum   = waPhone.startsWith('0') ? '92'+waPhone.slice(1) : waPhone;
-    return `<div class="contact-card ${u.paid ? 'paid-today' : ''}">
-      <div class="contact-top">
-        <div style="flex:1">
-          <div class="contact-name">${u.naam}</div>
-          <div class="contact-meta">${u.phone||'—'} &middot; 📍 ${u.address||'—'}</div>
-          <div style="font-size:12px;margin-top:4px;font-weight:700;color:#cc0000;">Monthly Bill: Rs.${u.bill}</div>
-          ${u.paid ? '<div style="font-size:11px;color:#16a34a;margin-top:2px;">✅ Paid: '+u.paidDate+'</div>' : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-          <span class="badge ${u.paid ? 'badge-clear' : 'badge-pending'}">${u.paid ? 'Paid' : 'Pending'}</span>
-          <button onclick="openCableEdit(${realIdx})" style="background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;border-radius:20px;font-size:11px;font-weight:700;padding:5px 10px;cursor:pointer;">✏️ Edit</button>
-        </div>
-      </div>
-      <div class="contact-bottom">
-        <span style="font-size:11px;color:#888;">Added: ${u.addedOn}</span>
-        <div class="action-btns">
-          ${u.phone ? `<button onclick="window.location.href='tel:${u.phone}'" style="background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc;border-radius:20px;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;">📞 Call</button>` : ''}
-          ${waNum ? `<button class="btn-wa" onclick="window.open('https://wa.me/${waNum}','_blank')">WhatsApp</button>` : ''}
-          <button onclick="toggleCablePaid(${realIdx})" class="btn-paid ${u.paid ? 'done' : ''}">✓ ${u.paid ? 'Clear' : 'Pay'}</button>
-          <button onclick="deleteCableUser(${realIdx})" style="background:#fff1f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;">✕</button>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ─── CABLE EDIT ────────────────────────────────────────────────────────
-let cableEditIdx = -1;
-function openCableEdit(idx) {
-  cableEditIdx = idx;
-  const u = cableUsers[idx];
-  document.getElementById('ce-naam').value    = u.naam || '';
-  document.getElementById('ce-phone').value   = u.phone || '';
-  document.getElementById('ce-address').value = u.address || '';
-  document.getElementById('ce-bill').value    = u.bill || '';
-  document.getElementById('cable-edit-modal').classList.add('open');
-}
-function closeCableEdit() { document.getElementById('cable-edit-modal').classList.remove('open'); cableEditIdx = -1; }
-function saveCableEdit() {
-  if (cableEditIdx < 0) return;
-  const u = cableUsers[cableEditIdx];
-  u.naam    = document.getElementById('ce-naam').value.trim();
-  u.phone   = document.getElementById('ce-phone').value.trim();
-  u.address = document.getElementById('ce-address').value.trim();
-  u.bill    = parseInt(document.getElementById('ce-bill').value) || u.bill;
-  if (!u.naam) { alert('Name zaruri hai!'); return; }
-  saveCableUsers(); renderCableList(); closeCableEdit();
-}
-function deleteCableFromEdit() {
-  if (cableEditIdx < 0) return;
-  if (!confirm('Delete "' + cableUsers[cableEditIdx].naam + '"?')) return;
-  cableUsers.splice(cableEditIdx, 1); saveCableUsers(); renderCableList(); closeCableEdit();
-}
-
-// ─── RASHID EDIT ────────────────────────────────────────────────────────
-let rashidEditIdx = -1;
-function openRashidEdit(idx) {
-  rashidEditIdx = idx;
-  const u = rashidUsers[idx];
-  document.getElementById('re-naam').value    = u.naam || '';
-  document.getElementById('re-phone').value   = u.phone || '';
-  document.getElementById('re-address').value = u.address || '';
-  document.getElementById('re-bill').value    = u.bill || '';
-  document.getElementById('rashid-edit-modal').classList.add('open');
-}
-function closeRashidEdit() { document.getElementById('rashid-edit-modal').classList.remove('open'); rashidEditIdx = -1; }
-function saveRashidEdit() {
-  if (rashidEditIdx < 0) return;
-  const u = rashidUsers[rashidEditIdx];
-  u.naam    = document.getElementById('re-naam').value.trim();
-  u.phone   = document.getElementById('re-phone').value.trim();
-  u.address = document.getElementById('re-address').value.trim();
-  const newBill = parseInt(document.getElementById('re-bill').value) || u.bill;
-  if (newBill !== u.bill) {
-    const split = getRashidSplit(newBill);
-    u.bill = newBill; u.mine = split.mine; u.theirs = split.theirs;
-  }
-  if (!u.naam) { alert('Name zaruri hai!'); return; }
-  localStorage.setItem('rashid_users', JSON.stringify(rashidUsers));
-  renderRashidList(); closeRashidEdit();
-}
-function deleteRashidFromEdit() {
-  if (rashidEditIdx < 0) return;
-  if (!confirm('Delete "' + rashidUsers[rashidEditIdx].naam + '"?')) return;
-  rashidUsers.splice(rashidEditIdx, 1);
-  localStorage.setItem('rashid_users', JSON.stringify(rashidUsers));
-  renderRashidList(); closeRashidEdit();
-}
-
-// Init cable list on load
-document.addEventListener('DOMContentLoaded', function() { renderCableList(); });
 
 // ─── PERSONAL ────────────────────────────────────────────────────────
 let personalUsers = JSON.parse(localStorage.getItem('personal_users') || '[]');
@@ -2973,7 +2890,7 @@ document.addEventListener('DOMContentLoaded', function() {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Name</label><input type="text" id="rb-naam" placeholder="Customer Name"></div>
       <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Phone</label><input type="text" id="rb-phone" placeholder="03xxxxxxxxx"></div>
-      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Address</label><input type="text" id="rb-address" placeholder="Customer Address"></div>
+      <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">CNIC</label><input type="text" id="rb-nid" placeholder="CNIC"></div>
       <div><label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">Monthly Bill</label><input type="number" id="rb-bill" placeholder="350 or 400" oninput="previewRashidSplit()"></div>
     </div>
     <div id="rb-split-preview" style="font-size:12px;color:#666;margin-bottom:10px;min-height:16px;"></div>
