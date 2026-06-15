@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#cc0000">
 <title>Insta-PayTrack</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
 <script>
 // ─── REMINDERS ───────────────────────────────────────────────────────
 let reminderIdx = -1;
@@ -886,6 +887,12 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
     
     <button class="btn-primary" onclick="parseData('online')" style="margin-top:10px">&#9989; Load Online Data</button>
     <div id="status-msg-online" style="margin-top:10px;font-size:13px;"></div>
+
+    <!-- Online Paste Area -->
+    <div class="divider" style="margin-top:16px;">or paste data directly from Excel</div>
+    <p style="font-size:12px;color:#666;margin-bottom:8px;line-height:1.7;">Excel se data copy karo (Ctrl+A → Ctrl+C) aur yahan paste karo. Header row include karo ya sirf data — dono chalega.</p>
+    <textarea id="raw-data-online" rows="6" placeholder="Yahan Excel data paste karo...&#10;Sr&#9;Full Name&#9;NID / CNIC&#9;Phone&#9;Date&#9;Amount&#9;Previous&#9;Received&#9;Pending&#10;1&#9;Yousaf Laghari&#9;32403-3917535-1&#9;03078192244&#9;1st&#9;1300&#9;&#9;1300&#9;0" style="width:100%;box-sizing:border-box;border:1.5px dashed #cc0000;border-radius:12px;padding:10px;font-size:12px;font-family:monospace;background:#fff8f8;resize:vertical;min-height:100px;"></textarea>
+    <button class="btn-primary" onclick="parseData('online')" style="margin-top:8px;">&#128203; Paste karke Load Karo (Online)</button>
   </div>
 
   <!-- SUNNY OFFLINE SHEET SYNC -->
@@ -908,6 +915,12 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
     
     <button class="btn-primary" onclick="parseData('sunny')" style="margin-top:10px">&#9989; Load Sunny Data</button>
     <div id="status-msg-sunny" style="margin-top:10px;font-size:13px;"></div>
+
+    <!-- Sunny Paste Area -->
+    <div class="divider" style="margin-top:16px;">or paste data directly from Excel</div>
+    <p style="font-size:12px;color:#666;margin-bottom:8px;line-height:1.7;">Excel se data copy karo (Ctrl+A → Ctrl+C) aur yahan paste karo. Header row include karo ya sirf data — dono chalega.</p>
+    <textarea id="raw-data-sunny" rows="6" placeholder="Yahan Excel data paste karo...&#10;Sr&#9;Full Name&#9;NID / CNIC&#9;Phone&#9;Date&#9;Amount&#9;Previous&#9;Received&#9;Pending&#10;1&#9;Uzbek&#9;32303-7634578-5&#9;03060168171&#9;1st&#9;2000&#9;&#9;&#9;2000" style="width:100%;box-sizing:border-box;border:1.5px dashed #c08000;border-radius:12px;padding:10px;font-size:12px;font-family:monospace;background:#fffbf0;resize:vertical;min-height:100px;"></textarea>
+    <button class="btn-primary" onclick="parseData('sunny')" style="margin-top:8px;background:linear-gradient(135deg,#92400e,#b45309);">&#128203; Paste karke Load Karo (Sunny)</button>
   </div>
 
   <!-- Rollover -->
@@ -2158,16 +2171,125 @@ function saveTemplate() {
 
 // ─── EXPORT FUNCTIONS ────────────────────────────────────────────────
 
-function _xlsxExport(rows, sheetName, fileName) {
+async function _xlsxExport(rows, sheetName, fileName) {
   if (!rows || !rows.length) { alert('Koi data nahi mila export ke liye!'); return; }
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, sheetName);
-  XLSX.writeFile(wb, fileName);
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'Insta-PayTrack';
+  workbook.created = new Date();
+  const sheet = workbook.addWorksheet(sheetName);
+
+  const monthYear = new Date().toLocaleDateString('en-PK', { month: 'long', year: 'numeric' });
+
+  // ── ROW 1: Title ──────────────────────────────────────────────────
+  const cols = Object.keys(rows[0]);
+  const totalCols = cols.length;
+
+  sheet.mergeCells(1, 1, 1, totalCols);
+  const titleCell = sheet.getCell('A1');
+  titleCell.value = 'INSTACOM PVT. LTD  ·  Customer Billing Record  ·  ' + monthYear;
+  titleCell.font = { name: 'Arial', bold: true, size: 14, color: { argb: 'FFFFFFFF' } };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF8B0000' } };
+  sheet.getRow(1).height = 30;
+
+  // ── ROW 2: Subtitle ───────────────────────────────────────────────
+  sheet.mergeCells(2, 1, 2, totalCols);
+  const subCell = sheet.getCell('A2');
+  subCell.value = 'Wi-Fi Carrier Class Services  |  www.insta.com.pk  |  sales@insta.com.pk';
+  subCell.font = { name: 'Arial', size: 10, color: { argb: 'FFFFFFFF' } };
+  subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFAA0000' } };
+  sheet.getRow(2).height = 20;
+
+  // ── ROW 3: Headers ────────────────────────────────────────────────
+  const headerRow = sheet.addRow(cols);
+  headerRow.eachCell(cell => {
+    cell.font = { name: 'Arial', bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC0000' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFFF6666' } },
+      bottom: { style: 'thin', color: { argb: 'FFFF6666' } },
+      left: { style: 'thin', color: { argb: 'FFFF6666' } },
+      right: { style: 'thin', color: { argb: 'FFFF6666' } }
+    };
+  });
+  headerRow.height = 28;
+
+  // ── DATA ROWS ────────────────────────────────────────────────────
+  rows.forEach((rowData, idx) => {
+    const values = cols.map(c => rowData[c]);
+    const dataRow = sheet.addRow(values);
+    const isTotalRow = (String(rowData[cols[1]] || rowData[cols[0]] || '')).toUpperCase() === 'TOTAL';
+    const isEven = idx % 2 === 0;
+
+    dataRow.eachCell({ includeEmpty: true }, (cell, colNum) => {
+      const colKey = cols[colNum - 1] || '';
+      const val = cell.value;
+
+      // Detect pending (red) vs received/cleared (green) for amount columns
+      let fontColor = 'FF1A1A2E';
+      if (isTotalRow) {
+        fontColor = 'FFCC0000';
+      } else {
+        const keyL = colKey.toLowerCase();
+        if (keyL.includes('pending') && Number(val) > 0) fontColor = 'FFCC0000';
+        else if (keyL.includes('received') || keyL.includes('paid')) fontColor = 'FF166534';
+        else if (keyL.includes('status')) {
+          fontColor = (val === 'Cleared' || val === 'Paid') ? 'FF166534' : 'FFCC0000';
+        }
+      }
+
+      cell.font = {
+        name: 'Arial',
+        bold: isTotalRow,
+        size: isTotalRow ? 11 : 10,
+        color: { argb: fontColor }
+      };
+      cell.fill = {
+        type: 'pattern', pattern: 'solid',
+        fgColor: { argb: isTotalRow ? 'FFFFF0F0' : (isEven ? 'FFFFFFFF' : 'FFFFF8F8') }
+      };
+      cell.alignment = {
+        horizontal: (typeof val === 'number') ? 'right' : 'center',
+        vertical: 'middle'
+      };
+      cell.border = {
+        top: { style: 'hair', color: { argb: 'FFFECACA' } },
+        bottom: { style: 'hair', color: { argb: 'FFFECACA' } },
+        left: { style: 'hair', color: { argb: 'FFFECACA' } },
+        right: { style: 'hair', color: { argb: 'FFFECACA' } }
+      };
+    });
+    dataRow.height = 20;
+  });
+
+  // ── COLUMN WIDTHS ────────────────────────────────────────────────
+  sheet.columns.forEach((col, i) => {
+    const key = (cols[i] || '').toLowerCase();
+    if (key.includes('name') || key.includes('naam')) col.width = 24;
+    else if (key.includes('cnic') || key.includes('nid')) col.width = 20;
+    else if (key.includes('phone')) col.width = 16;
+    else if (key.includes('amount') || key.includes('bill') || key.includes('pending') || key.includes('received') || key.includes('share') || key.includes('commission') || key.includes('paid')) col.width = 18;
+    else if (key.includes('status')) col.width = 14;
+    else col.width = 12;
+  });
+
+  // ── FREEZE TOP ROWS ──────────────────────────────────────────────
+  sheet.views = [{ state: 'frozen', xSplit: 0, ySplit: 3 }];
+
+  // ── DOWNLOAD ─────────────────────────────────────────────────────
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 // Today's Payments — contacts jinhon ne aaj pay kiya
-function exportTodayPayments() {
+async function exportTodayPayments() {
   const today = new Date();
   const dateStr = today.toLocaleDateString('en-PK', {day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const rows = contacts
@@ -2187,11 +2309,11 @@ function exportTodayPayments() {
   if (!rows.length) { alert('Aaj kisi ne payment nahi ki! "Paid Today" wale contacts nahi hain.'); return; }
   const totalPaid = rows.reduce((s, r) => s + (r['Paid Today (Rs.)'] || 0), 0);
   rows.push({ 'Sr': '', 'Name': 'TOTAL', 'Phone': '', 'CNIC': '', 'Date Group': '', 'Monthly Bill (Rs.)': '', 'Paid Today (Rs.)': totalPaid, 'Remaining Pending (Rs.)': '', 'Total Received (Rs.)': '', 'Status': rows.length + ' contacts' });
-  _xlsxExport(rows, "Today's Payments", 'Today_Payments_' + dateStr + '.xlsx');
+  await _xlsxExport(rows, "Today's Payments", 'Today_Payments_' + dateStr + '.xlsx');
 }
 
 // Export all contacts (main sheet)
-function exportAllContacts() {
+async function exportAllContacts() {
   const today = new Date().toLocaleDateString('en-PK', {day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const rows = contacts.map((c, i) => ({
     'Sr': c.sr || (i + 1),
@@ -2206,11 +2328,11 @@ function exportAllContacts() {
     'Sheet Type': c.sheetType || '',
     'Status': (c.pendingNum === 0) ? 'Cleared' : 'Pending'
   }));
-  _xlsxExport(rows, 'All Contacts', 'All_Contacts_' + today + '.xlsx');
+  await _xlsxExport(rows, 'All Contacts', 'All_Contacts_' + today + '.xlsx');
 }
 
 // Export by type (for header Export button fallback)
-function exportCSV() {
+async function exportCSV() {
   const choice = prompt(
 `Kon si file export karni hai?
 
@@ -2243,11 +2365,10 @@ mueez`
       'Paid Today (Rs.)': ct.paidToday || 0,
       'Status': (ct.pendingNum === 0) ? 'Cleared' : 'Pending'
     }));
-  _xlsxExport(rows, c.charAt(0).toUpperCase()+c.slice(1), c+'_'+today+'.xlsx');
+  await _xlsxExport(rows, c.charAt(0).toUpperCase()+c.slice(1), c+'_'+today+'.xlsx');
 }
 
-// Cable tab export
-function exportCableData() {
+async function exportCableData() {
   const today = new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const src = (typeof cableUsers !== 'undefined' && cableUsers.length) ? cableUsers : [];
   if (!src.length) { alert('Cable tab mein abhi koi user nahi hai. Pehle users add karein.'); return; }
@@ -2256,11 +2377,10 @@ function exportCableData() {
     'CNIC': u.nid || '', 'Monthly Bill (Rs.)': u.bill || '',
     'Status': u.paid ? 'Paid' : 'Pending'
   }));
-  _xlsxExport(rows, 'Cable', 'Cable_Data_' + today + '.xlsx');
+  await _xlsxExport(rows, 'Cable', 'Cable_Data_' + today + '.xlsx');
 }
 
-// Rashid tab export
-function exportRashidData() {
+async function exportRashidData() {
   const today = new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const src = (typeof rashidUsers !== 'undefined' && rashidUsers.length) ? rashidUsers : [];
   if (!src.length) { alert('Rashid tab mein koi user nahi hai.'); return; }
@@ -2273,11 +2393,10 @@ function exportRashidData() {
   const myTotal = src.reduce((s, u) => s + (Number(u.mine) || 0), 0);
   const theirTotal = src.reduce((s, u) => s + (Number(u.theirs) || 0), 0);
   rows.push({ 'Sr': '', 'Name': 'TOTAL', 'Phone': '', 'CNIC': '', 'Monthly Bill (Rs.)': '', 'My Share (Rs.)': myTotal, 'Rashid Share (Rs.)': theirTotal, 'Status': src.length + ' users' });
-  _xlsxExport(rows, 'Rashid', 'Rashid_Data_' + today + '.xlsx');
+  await _xlsxExport(rows, 'Rashid', 'Rashid_Data_' + today + '.xlsx');
 }
 
-// Personal tab export
-function exportPersonalData() {
+async function exportPersonalData() {
   const today = new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const src = (typeof personalUsers !== 'undefined' && personalUsers.length) ? personalUsers : [];
   if (!src.length) { alert('Personal tab mein koi user nahi hai.'); return; }
@@ -2289,11 +2408,10 @@ function exportPersonalData() {
   }));
   const total = src.reduce((s, u) => s + (Number(u.bill) || 0), 0);
   rows.push({ 'Sr': '', 'Name': 'TOTAL', 'Phone': '', 'CNIC': '', 'Monthly Bill (Rs.)': total, 'Type': '', 'Date Group': '', 'Status': src.length + ' users' });
-  _xlsxExport(rows, 'Personal', 'Personal_Data_' + today + '.xlsx');
+  await _xlsxExport(rows, 'Personal', 'Personal_Data_' + today + '.xlsx');
 }
 
-// Mueez tab export
-function exportMueezData() {
+async function exportMueezData() {
   const today = new Date().toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'}).replace(/ /g,'_');
   const src = (typeof mueezUsers !== 'undefined' && mueezUsers.length) ? mueezUsers : [];
   if (!src.length) { alert('Mueez tab mein koi user nahi hai.'); return; }
@@ -2306,7 +2424,7 @@ function exportMueezData() {
   const myComm = src.reduce((s, u) => s + (Number(u.comm) || 0), 0);
   const mueezShare = src.reduce((s, u) => s + ((Number(u.bill)||0) - (Number(u.comm)||0)), 0);
   rows.push({ 'Sr': '', 'Name': 'TOTAL', 'Phone': '', 'CNIC': '', 'Monthly Bill (Rs.)': '', 'My Commission (Rs.)': myComm, 'Mueez Bhai Share (Rs.)': mueezShare });
-  _xlsxExport(rows, 'Mueez', 'Mueez_Data_' + today + '.xlsx');
+  await _xlsxExport(rows, 'Mueez', 'Mueez_Data_' + today + '.xlsx');
 }
 
 function resetData() {
@@ -2457,8 +2575,8 @@ async function addNewUser() {
   const newContact = {
     sr, naam, nid, phone,
     cleanPhone: cleanPhone(phone), date, amount,
-    prev: '0', received: '0', pending: amount,
-    pendingNum: toNum(amount), amountNum: toNum(amount),
+    prev: '0', received: amount, pending: '0',
+    pendingNum: 0, amountNum: toNum(amount),
     paidToday: 0, msgCount: 0, reminder: null,
     sheetType: sheet
   };
