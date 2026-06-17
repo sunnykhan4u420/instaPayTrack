@@ -1176,6 +1176,31 @@ let contacts = [];
 let activeFilter = 'all';
 let modalIdx = -1;
 
+// ─── DAILY RESET: paidToday sirf aaj ki entries dikhni chahiyen ────────
+(function resetPaidTodayIfNewDay() {
+  try {
+    const todayStr = new Date().toDateString();
+    const stored = JSON.parse(localStorage.getItem('rc_v3_contacts') || '[]');
+    let changed = false;
+    stored.forEach(c => {
+      if ((c.paidToday || 0) > 0 && c.paidOnDate !== todayStr) {
+        c.paidToday  = 0;
+        c.paidOnDate = null;
+        c.paidBy     = null;
+        changed = true;
+      }
+    });
+    if (changed) {
+      // Direct write — bypass cloudPush (Firebase se hi sync hoga jab ready ho)
+      const _raw = localStorage.setItem.toString().includes('cloudPush')
+        ? Object.getPrototypeOf(localStorage).setItem.bind(localStorage)
+        : localStorage.setItem.bind(localStorage);
+      try { _raw.call(localStorage, 'rc_v3_contacts', JSON.stringify(stored)); }
+      catch(e) { localStorage.setItem('rc_v3_contacts', JSON.stringify(stored)); }
+    }
+  } catch(e) { console.warn('paidToday reset failed', e); }
+})();
+
 // ─── PHONE CLEANER ───────────────────────────────────────────────────
 function cleanPhone(raw) {
   if (!raw) return '';
@@ -2113,6 +2138,7 @@ function confirmPayment() {
   c.pendingNum = newPending;
   c.pending    = String(newPending);
   c.paidToday  = (c.paidToday || 0) + amt;
+  c.paidOnDate = new Date().toDateString(); // reset check ke liye
   c.received   = String((toNum(c.received)) + amt);
   c.paidBy     = CLOUD_ROLE || 'me';
   saveContacts();
