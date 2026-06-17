@@ -638,6 +638,42 @@ function initCloudSync() {
       _suppressPush = false;
     });
 
+    _db.ref(base + '/cable').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        cableUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('cable_users', JSON.stringify(cableUsers));
+        if (typeof renderCableList === 'function') renderCableList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
+    _db.ref(base + '/rashid').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        rashidUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('rashid_users', JSON.stringify(rashidUsers));
+        if (typeof renderRashidList === 'function') renderRashidList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
+    _db.ref(base + '/personal').on('value', snap => {
+      const remote = snap.val();
+      if (!remote) return;
+      _suppressPush = true;
+      try {
+        personalUsers = Array.isArray(remote) ? remote : Object.values(remote);
+        _origSet('personal_users', JSON.stringify(personalUsers));
+        if (typeof renderPersonalList === 'function') renderPersonalList();
+      } catch(e){ console.error(e); }
+      _suppressPush = false;
+    });
+
   } catch(e) {
     console.error('Cloud init failed:', e);
     _showCloudBadge('⚠️ Cloud error');
@@ -646,7 +682,13 @@ function initCloudSync() {
 
 function cloudPush(key, value) {
   if (!CLOUD_READY || _suppressPush) return;
-  const map = { 'rc_v3_contacts': 'contacts', 'mueez_users': 'mueez' };
+  const map = { 
+    'rc_v3_contacts': 'contacts', 
+    'mueez_users':    'mueez',
+    'cable_users':    'cable',
+    'rashid_users':   'rashid',
+    'personal_users': 'personal'
+  };
   const path = map[key];
   if (!path) return;
   try {
@@ -659,7 +701,7 @@ function cloudPush(key, value) {
 const _origSet = localStorage.setItem.bind(localStorage);
 localStorage.setItem = function(k, v) {
   _origSet(k, v);
-  if (k === 'rc_v3_contacts' || k === 'mueez_users') cloudPush(k, v);
+  if (k === 'rc_v3_contacts' || k === 'mueez_users' || k === 'cable_users' || k === 'rashid_users' || k === 'personal_users') cloudPush(k, v);
 };
 
 function _showCloudBadge(txt) {
@@ -725,44 +767,39 @@ window.addEventListener('load', () => setTimeout(initCloudSync, 300));
 
     <div class="stats">
       <div class="stat">
-        <div class="stat-val">0</div>
+        <div class="stat-val" id="cable-total-conn">0</div>
         <div class="stat-label">Connections</div>
       </div>
       <div class="stat">
-        <div class="stat-val">0</div>
+        <div class="stat-val" id="cable-total-bill">Rs.0</div>
         <div class="stat-label">Monthly Bills</div>
       </div>
+      <div class="stat">
+        <div class="stat-val" id="cable-paid-count">0</div>
+        <div class="stat-label">Paid</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="cable-pending-count">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
     </div>
 
-    <div class="search-wrap">
+    <div class="search-wrap" style="margin-bottom:12px;">
       <span class="search-icon">🔍</span>
-      <input type="text" placeholder="Search Cable Customer...">
+      <input type="text" id="cable-search" placeholder="Search Cable Customer..." oninput="renderCableList()" style="width:100%;border:none;outline:none;font-size:14px;background:transparent;">
     </div>
 
-    <div class="contact-card">
-      <div class="contact-top">
-        <div>
-          <div class="contact-name">Mueez Bhai Customer</div>
-          <div class="contact-meta">CNIC: 35202-XXXXXXX-X</div>
-          <div class="contact-meta">Address: Customer Address</div>
-        </div>
-        <div class="badge badge-pending">Bill Pending</div>
-      </div>
+    <div id="cable-list"></div>
 
-      <div class="contact-bottom">
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#cc0000;">Monthly Bill: Rs 0</div>
-        </div>
+    <!-- Add New Cable User -->
+    <div class="divider" style="margin-top:16px;">➕ Add New Cable User</div>
+    <input type="text" id="cb-naam" placeholder="Customer Name *" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:8px;">
+    <input type="text" id="cb-phone" placeholder="Phone Number" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:8px;">
+    <input type="text" id="cb-nid" placeholder="CNIC (optional)" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:8px;">
+    <input type="number" id="cb-bill" placeholder="Monthly Bill (Rs.) *" style="width:100%;box-sizing:border-box;border:1.5px solid #e5e7eb;border-radius:12px;padding:11px 14px;font-size:14px;margin-bottom:8px;">
+    <button class="btn-primary" onclick="addCableUser()" style="margin-top:4px;">➕ Add Cable User</button>
 
-        <div class="action-btns" style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn-primary" style="width:auto;padding:8px 14px;margin-top:0;font-size:12px;" onclick="alert('Add User feature ready!')">➕ Add User</button>
-          <button class="btn-wa" onclick="alert('No phone number on this demo customer.')">WhatsApp</button>
-        </div>
-      </div>
-    </div>
-
-    <button class="btn-primary">📤 Export Cable Data</button>
-    <button onclick="exportCableData()" style="margin-top:8px;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 3px 10px rgba(5,150,105,0.4);">&#128202; Export Cable Excel</button>
+    <button onclick="exportCableData()" style="margin-top:10px;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:12px;padding:11px;font-size:14px;font-weight:700;cursor:pointer;width:100%;box-shadow:0 3px 10px rgba(5,150,105,0.4);">📊 Export Cable Excel</button>
   </div>
 </div>
 
@@ -2803,11 +2840,107 @@ function renderRashidList() {
   }).join('');
 }
 
+// ─── CABLE ────────────────────────────────────────────────────────────
+let cableUsers = JSON.parse(localStorage.getItem('cable_users') || 'null');
+if (!cableUsers) {
+  // Pre-loaded data from image
+  cableUsers = [
+    { naam:'Dr Sohail',      phone:'03433360993', nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Saddam Hussain', phone:'03020544944', nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Chacha Munshi',  phone:'',            nid:'', bill:800,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'M Rizwan',       phone:'3017855873',  nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Hamza',          phone:'',            nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Anwar Bhai',     phone:'03014440275', nid:'', bill:400,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Mohsin Bukhari', phone:'03026473457', nid:'', bill:1000, paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Zahid',          phone:'',            nid:'', bill:400,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Salman',         phone:'',            nid:'', bill:400,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Mian Riaz',      phone:'',            nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+    { naam:'Zaki',           phone:'03294312497', nid:'', bill:500,  paid:false, paidDate:null, addedOn:'13/06/2026' },
+  ];
+  localStorage.setItem('cable_users', JSON.stringify(cableUsers));
+}
+
+function addCableUser() {
+  const naam  = document.getElementById('cb-naam').value.trim();
+  const phone = document.getElementById('cb-phone').value.trim();
+  const nid   = document.getElementById('cb-nid').value.trim();
+  const bill  = toNum(document.getElementById('cb-bill').value);
+  if (!naam || !bill) { alert('Name aur Monthly Bill required hain!'); return; }
+  cableUsers.push({ naam, phone, nid, bill, paid: false, paidDate: null, addedOn: new Date().toLocaleDateString('en-PK') });
+  localStorage.setItem('cable_users', JSON.stringify(cableUsers));
+  document.getElementById('cb-naam').value = '';
+  document.getElementById('cb-phone').value = '';
+  document.getElementById('cb-nid').value = '';
+  document.getElementById('cb-bill').value = '';
+  renderCableList();
+}
+
+function toggleCablePaid(idx) {
+  cableUsers[idx].paid = !cableUsers[idx].paid;
+  cableUsers[idx].paidDate = cableUsers[idx].paid ? new Date().toLocaleDateString('en-PK') : null;
+  localStorage.setItem('cable_users', JSON.stringify(cableUsers));
+  renderCableList();
+}
+
+function deleteCableUser(idx) {
+  if (!confirm('Delete ' + cableUsers[idx].naam + '?')) return;
+  cableUsers.splice(idx, 1);
+  localStorage.setItem('cable_users', JSON.stringify(cableUsers));
+  renderCableList();
+}
+
+function renderCableList() {
+  const totalBill    = cableUsers.reduce((s, u) => s + u.bill, 0);
+  const paidCount    = cableUsers.filter(u => u.paid).length;
+  const pendingCount = cableUsers.length - paidCount;
+  document.getElementById('cable-total-conn').textContent    = cableUsers.length;
+  document.getElementById('cable-total-bill').textContent    = 'Rs.' + totalBill.toLocaleString();
+  document.getElementById('cable-paid-count').textContent    = paidCount;
+  document.getElementById('cable-pending-count').textContent = pendingCount;
+
+  const q   = (document.getElementById('cable-search')?.value || '').toLowerCase();
+  const src = q ? cableUsers.filter(u => u.naam.toLowerCase().includes(q) || (u.phone||'').includes(q)) : cableUsers;
+  const el  = document.getElementById('cable-list');
+
+  if (!src.length) {
+    el.innerHTML = '<div class="empty"><p>Koi cable user nahi mila</p></div>';
+    return;
+  }
+
+  el.innerHTML = src.map((u, i) => {
+    const realIdx = cableUsers.indexOf(u);
+    const waPhone = (u.phone||'').replace(/\D/g,'');
+    const waNum   = waPhone.startsWith('0') ? '92' + waPhone.slice(1) : waPhone;
+    return `
+    <div class="contact-card ${u.paid ? 'paid-today' : ''}">
+      <div class="contact-top">
+        <div style="flex:1">
+          <div class="contact-name">${u.naam}</div>
+          <div class="contact-meta">${u.phone || '—'} &middot; CNIC: ${u.nid || '—'}</div>
+          <div style="font-size:13px;font-weight:700;color:#cc0000;margin-top:4px;">Monthly Bill: Rs.${u.bill.toLocaleString()}</div>
+          ${u.paid ? '<div style="font-size:11px;color:#16a34a;margin-top:2px;">Paid: ' + u.paidDate + '</div>' : ''}
+        </div>
+        <span class="badge ${u.paid ? 'badge-clear' : 'badge-pending'}">${u.paid ? 'Paid' : 'Pending'}</span>
+      </div>
+      <div class="contact-bottom">
+        <span style="font-size:11px;color:#888;">Added: ${u.addedOn}</span>
+        <div class="action-btns">
+          ${waNum ? `<button class="btn-wa" onclick="window.open('https://wa.me/${waNum}','_blank')">WhatsApp</button>` : ''}
+          <button onclick="toggleCablePaid(${realIdx})" class="btn-paid ${u.paid ? 'done' : ''}">&#10003; ${u.paid ? 'Clear' : 'Pay'}</button>
+          <button onclick="deleteCableUser(${realIdx})" style="background:#fff1f2;color:#dc2626;border:1px solid #fecaca;border-radius:20px;font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;">&#10005;</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─── RASHID ────────────────────────────────────────────────────────────
+// (rashidUsers already initialized above at line 2704)
+
 // ─── PERSONAL ────────────────────────────────────────────────────────
 let personalUsers = JSON.parse(localStorage.getItem('personal_users') || '[]');
 
-function addPersonalUser() {
-  const naam  = document.getElementById('ps-naam').value.trim();
+function addPersonalUser() {  const naam  = document.getElementById('ps-naam').value.trim();
   const phone = document.getElementById('ps-phone').value.trim();
   const nid   = document.getElementById('ps-nid').value.trim();
   const bill  = toNum(document.getElementById('ps-bill').value);
@@ -2885,6 +3018,7 @@ function renderPersonalList() {
 
 // ─── INIT ALL NEW LISTS ───────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
+  renderCableList();
   renderMueezList();
   renderRashidList();
   renderPersonalList();
