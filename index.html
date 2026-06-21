@@ -616,21 +616,19 @@ function initCloudSync() {
       _suppressPush = true;
       try {
         contacts = Array.isArray(remote) ? remote : Object.values(remote);
-        // ── Reset paidToday for any contact not paid today ──
-        const todayStr = new Date().toDateString();
-        let resetNeeded = false;
+        // ── Reset paidToday if not from today ──
+        const _today = new Date().toDateString();
+        let _changed = false;
         contacts.forEach(c => {
-          if ((c.paidToday || 0) > 0 && c.paidOnDate !== todayStr) {
+          if ((c.paidToday || 0) > 0 && c.paidOnDate !== _today) {
             c.paidToday  = 0;
             c.paidOnDate = null;
             c.paidBy     = null;
-            resetNeeded  = true;
+            _changed = true;
           }
         });
         _origSet('rc_v3_contacts', JSON.stringify(contacts));
-        if (resetNeeded) {
-          _db.ref(base + '/contacts').set(contacts);
-        }
+        if (_changed) cloudPush('rc_v3_contacts', JSON.stringify(contacts));
         if (typeof showContactsUI === 'function' && contacts.length) showContactsUI();
         if (typeof showStats === 'function') showStats();
         if (typeof renderFiltered === 'function') renderFiltered();
@@ -1205,9 +1203,12 @@ let modalIdx = -1;
       }
     });
     if (changed) {
-      // Save via normal localStorage — cloudPush override will sync to Firebase
-      localStorage.setItem('rc_v3_contacts', JSON.stringify(stored));
-      console.log('paidToday reset for new day — synced to Firebase');
+      // Direct write — bypass cloudPush (Firebase se hi sync hoga jab ready ho)
+      const _raw = localStorage.setItem.toString().includes('cloudPush')
+        ? Object.getPrototypeOf(localStorage).setItem.bind(localStorage)
+        : localStorage.setItem.bind(localStorage);
+      try { _raw.call(localStorage, 'rc_v3_contacts', JSON.stringify(stored)); }
+      catch(e) { localStorage.setItem('rc_v3_contacts', JSON.stringify(stored)); }
     }
   } catch(e) { console.warn('paidToday reset failed', e); }
 })();
@@ -1925,12 +1926,7 @@ function showStats() {
   const withPending = contacts.filter(c => c.pendingNum > 0).length;
   const cleared     = contacts.filter(c => c.pendingNum === 0).length;
   const totalPend   = contacts.reduce((s,c) => s + c.pendingNum, 0);
-  const todayStr2   = new Date().toDateString();
-  const todayTotal  = contacts.reduce((s,c) => {
-    // Only count paidToday if it was paid TODAY
-    if ((c.paidToday||0) > 0 && c.paidOnDate === todayStr2) return s + (c.paidToday||0);
-    return s;
-  }, 0);
+  const todayTotal  = contacts.reduce((s,c) => s + (c.paidToday||0), 0);
 
   // Grand total (sum of monthly bills), received (paid so far) and cash-in-hand
   const toNumLocal = v => parseInt(String(v||'0').replace(/[^\d]/g,''),10) || 0;
@@ -2035,10 +2031,7 @@ function renderFiltered() {
   let list = [...contacts];
   if (activeFilter === 'pending')    list = list.filter(c => c.pendingNum > 0);
   else if (activeFilter === 'cleared')    list = list.filter(c => c.pendingNum === 0);
-  else if (activeFilter === 'paid-today') {
-    const _todayStr = new Date().toDateString();
-    list = list.filter(c => (c.paidToday||0) > 0 && c.paidOnDate === _todayStr);
-  }
+  else if (activeFilter === 'paid-today') list = list.filter(c => c.paidToday > 0);
   else if (activeFilter === 'online')     list = list.filter(c => c.sheetType === 'online');
   else if (activeFilter === 'sunny')      list = list.filter(c => c.sheetType === 'sunny');
   else if (['1st','5th','10th','15th','20th','25th','30th'].includes(activeFilter))
@@ -2075,7 +2068,7 @@ function renderFiltered() {
         <div style="flex:1;min-width:0">
           <div class="contact-name">${c.sr ? c.sr+'. ':'' }${c.naam}</div>
           <div class="contact-meta">${c.phone || '—'} &middot; ${c.date || '—'}</div>
-          ${(paidToday > 0 && c.paidOnDate === new Date().toDateString()) ? `<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:2px;display:flex;align-items:center;gap:5px;">&#128176; Paid today: Rs.${paidToday.toLocaleString()} <span style="background:${c.paidBy==='boss'?'#fef3c7':'#ede9fe'};color:${c.paidBy==='boss'?'#92400e':'#5b21b6'};border:1px solid ${c.paidBy==='boss'?'#fde68a':'#c4b5fd'};border-radius:20px;padding:1px 8px;font-size:10px;font-weight:800;">${c.paidBy==='boss'?'👔 Boss':'👤 Sunny'}</span></div>` : ''}
+          ${paidToday > 0 ? `<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:2px;display:flex;align-items:center;gap:5px;">&#128176; Paid today: Rs.${paidToday.toLocaleString()} <span style="background:${c.paidBy==='boss'?'#fef3c7':'#ede9fe'};color:${c.paidBy==='boss'?'#92400e':'#5b21b6'};border:1px solid ${c.paidBy==='boss'?'#fde68a':'#c4b5fd'};border-radius:20px;padding:1px 8px;font-size:10px;font-weight:800;">${c.paidBy==='boss'?'👔 Boss':'👤 Sunny'}</span></div>` : ''}
           ${reminderHTML}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
@@ -2087,7 +2080,7 @@ function renderFiltered() {
         <span style="font-size:11px;color:#666666">Rs.${c.amount}/mo</span>
         <div class="action-btns">
           ${hasPend
-            ? `<button class="btn-paid ${(paidToday>0 && c.paidOnDate===new Date().toDateString())?'done':''}" onclick="openPayModal(${idx})">&#10003; Pay</button>`
+            ? `<button class="btn-paid ${paidToday>0?'done':''}" onclick="openPayModal(${idx})">&#10003; Pay</button>`
             : `<span style="font-size:11px;color:#16a34a;font-weight:700;">&#10003; Clear</span>`
           }
           <button class="btn-reminder ${hasReminder?'has-reminder':''}" onclick="openReminderModal(${idx})" title="Set Reminder">&#128276;</button>
