@@ -2066,7 +2066,7 @@ function renderFiltered() {
     div.innerHTML = `
       <div class="contact-top">
         <div style="flex:1;min-width:0">
-          <div class="contact-name">${c.sr ? c.sr+'. ':'' }${c.naam}</div>
+          <div class="contact-name">${c.sr ? c.sr+'. ':'' }${c.naam}${(()=>{ const n=new Date(); return (c.addedMonth===n.getMonth()&&c.addedYear===n.getFullYear()) ? ' <span style="background:#ef4444;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:20px;vertical-align:middle;letter-spacing:0.5px;">NEW</span>' : ''; })()}</div>
           <div class="contact-meta">${c.phone || '—'} &middot; ${c.date || '—'}</div>
           ${paidToday > 0 ? `<div style="font-size:11px;color:#16a34a;font-weight:700;margin-top:2px;display:flex;align-items:center;gap:5px;">&#128176; Paid today: Rs.${paidToday.toLocaleString()} <span style="background:${c.paidBy==='boss'?'#fef3c7':'#ede9fe'};color:${c.paidBy==='boss'?'#92400e':'#5b21b6'};border:1px solid ${c.paidBy==='boss'?'#fde68a':'#c4b5fd'};border-radius:20px;padding:1px 8px;font-size:10px;font-weight:800;">${c.paidBy==='boss'?'👔 Boss':'👤 Sunny'}</span></div>` : ''}
           ${reminderHTML}
@@ -2647,13 +2647,16 @@ async function addNewUser() {
 
   const sr = String(contacts.filter(c => c.sheetType === sheet).length + 1);
 
+  const _nowDate = new Date();
   const newContact = {
     sr, naam, nid, phone,
     cleanPhone: cleanPhone(phone), date, amount,
     prev: '0', received: amount, pending: '0',
     pendingNum: 0, amountNum: toNum(amount),
     paidToday: 0, msgCount: 0, reminder: null,
-    sheetType: sheet
+    sheetType: sheet,
+    addedMonth: _nowDate.getMonth(),
+    addedYear:  _nowDate.getFullYear()
   };
 
   contacts.push(newContact);
