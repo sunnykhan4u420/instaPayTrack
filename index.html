@@ -3610,7 +3610,7 @@ setTimeout(renderExpenses, 500);
     const sr   = c.sr || c.nid || (typeof contacts!=='undefined' ? (contacts.indexOf(c)+1) : '');
     const amt  = c.amountNum || parseInt(String(c.amount||'0').replace(/\D/g,''),10) || 0;
     const paid = c.paidToday || amt;
-    const month= prevMonthName();
+    const month= currentMonthName();
 
     // Row 1: S.# | Connection | Date
     field('S.#', sr,                      50, 290, 440);
