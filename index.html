@@ -52,13 +52,72 @@ function checkReminders() {
 }
 
 async function rolloverMonth() {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const now = new Date();
-  const nextMonth = months[(now.getMonth() + 1) % 12];
-  const year = String(now.getFullYear()).slice(2);
-  const nextName = nextMonth + '-' + year;
-  if (!confirm('Roll over to ' + nextName + '?\n\nUnpaid contacts will carry forward.')) return;
-  alert('✅ Rollover noted for ' + nextName + '.  to update.');
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now      = new Date();
+  const curMonth = MONTHS[now.getMonth()];
+  const curYear  = String(now.getFullYear()).slice(2);
+  const curName  = curMonth + '-' + curYear;
+
+  const nextIdx   = (now.getMonth() + 1) % 12;
+  const nextYear  = nextIdx === 0 ? String(now.getFullYear() + 1).slice(2) : curYear;
+  const nextName  = MONTHS[nextIdx] + '-' + nextYear;
+
+  // Count stats
+  const cleared  = contacts.filter(c => c.pendingNum === 0).length;
+  const unpaid   = contacts.filter(c => c.pendingNum > 0).length;
+
+  if (!confirm(
+    `📅 MONTHLY ROLLOVER
+
+` +
+    `Current: ${curName} → Next: ${nextName}
+
+` +
+    `✅ Cleared this month: ${cleared}
+` +
+    `⚠️ Unpaid (carry forward): ${unpaid}
+
+` +
+    `Kya aap sure hain? Yeh action:
+` +
+    `• Cleared contacts: received = amount, pending = 0
+` +
+    `• Unpaid contacts: pending amount DOUBLE hoga (bill + pichla)
+
+` +
+    `Data safe rahega — sirf pending update hoga.`
+  )) return;
+
+  let updCount = 0;
+  contacts.forEach(c => {
+    const bill = c.amountNum || 0;
+    const pend = c.pendingNum || 0;
+
+    if (pend === 0) {
+      // Already cleared — reset received for new month, pending stays 0
+      c.received  = String(bill);
+      c.prev      = '0';
+      c.paidToday = 0;
+      c.paidOnDate = null;
+      c.paidBy    = null;
+    } else {
+      // Unpaid — carry forward: new pending = old pending + this month bill
+      const newPending = pend + bill;
+      c.prev      = String(pend);
+      c.pending   = String(newPending);
+      c.pendingNum = newPending;
+      c.received  = '0';
+      c.paidToday = 0;
+      c.paidOnDate = null;
+      c.paidBy    = null;
+    }
+    updCount++;
+  });
+
+  localStorage.setItem('rc_v3_contacts', JSON.stringify(contacts));
+  alert(`✅ Rollover complete!\n\n${cleared} contacts cleared.\n${unpaid} contacts carry forward kiye gaye.\n\nAb ${nextName} shuru ho gaya!`);
+  renderFiltered();
+  showStats();
 }
 
 
@@ -2206,14 +2265,8 @@ function buildMsg(c) {
 
   const msg =
 `Dear ${sal} ${c.naam},
-
-We hope you are doing well. Kindly clear your monthly bill at your earliest convenience. Thank you!
-
-━━━━━━━━━━━━━━━━━━━━━━
-🏦 BANK TRANSFER (UBL)
-Account Title : Abdul Moeez Sherwani
-Account No    : 2257323569554
-IBAN          : PK46UNIL0109000323569554
+Hope you are well! 😊
+Kindly clear your monthly internet bill.
 
 📱 EASYPAISA / RAAST / NAYAPAY / SADAPAY
 Account Title : Abdul Moeez Sherwani
@@ -3744,13 +3797,8 @@ setTimeout(renderExpenses, 500);
     const caption =
 `Dear ${getSalutation(c.naam)} ${c.naam},
 
-We hope you are doing well. Kindly clear your monthly bill at your earliest convenience. Thank you!
-
-━━━━━━━━━━━━━━━━━━━━━━
-🏦 BANK TRANSFER (UBL)
-Account Title : Abdul Moeez Sherwani
-Account No    : 2257323569554
-IBAN          : PK46UNIL0109000323569554
+Hope you are well! 😊
+Kindly clear your monthly internet bill.
 
 📱 EASYPAISA / RAAST / NAYAPAY / SADAPAY
 Account Title : Abdul Moeez Sherwani
