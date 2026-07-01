@@ -100,13 +100,17 @@ function doAutoRollover() {
     const bill = c.amountNum || 0;
     const pend = c.pendingNum || 0;
     if (pend === 0) {
-      c.received   = String(bill);
+      // June cleared → July unpaid (fresh bill due)
+      c.received   = '0';
+      c.pending    = String(bill);
+      c.pendingNum = bill;
       c.prev       = '0';
       c.paidToday  = 0;
       c.paidOnDate = null;
       c.paidBy     = null;
       cleared++;
     } else {
+      // June unpaid → July pending = old pending + new bill
       const newPending = pend + bill;
       c.prev       = String(pend);
       c.pending    = String(newPending);
@@ -179,22 +183,24 @@ async function rolloverMonth() {
     const pend = c.pendingNum || 0;
 
     if (pend === 0) {
-      // Already cleared — reset received for new month, pending stays 0
-      c.received  = String(bill);
-      c.prev      = '0';
-      c.paidToday = 0;
+      // Cleared → new month unpaid (fresh bill due)
+      c.received   = '0';
+      c.pending    = String(bill);
+      c.pendingNum = bill;
+      c.prev       = '0';
+      c.paidToday  = 0;
       c.paidOnDate = null;
-      c.paidBy    = null;
+      c.paidBy     = null;
     } else {
-      // Unpaid — carry forward: new pending = old pending + this month bill
+      // Unpaid → carry forward: new pending = old pending + this month bill
       const newPending = pend + bill;
-      c.prev      = String(pend);
-      c.pending   = String(newPending);
+      c.prev       = String(pend);
+      c.pending    = String(newPending);
       c.pendingNum = newPending;
-      c.received  = '0';
-      c.paidToday = 0;
+      c.received   = '0';
+      c.paidToday  = 0;
       c.paidOnDate = null;
-      c.paidBy    = null;
+      c.paidBy     = null;
     }
     updCount++;
   });
